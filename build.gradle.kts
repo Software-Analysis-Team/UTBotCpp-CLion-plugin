@@ -1,6 +1,6 @@
 import org.jetbrains.changelog.markdownToHTML
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-
+//import com.google.protobuf.gradle.*
 
 fun properties(key: String) = project.findProperty(key).toString()
 
@@ -25,8 +25,8 @@ plugins {
     id("org.jetbrains.qodana") version "0.1.12"
 
     // gradle protobuf plugin: todo: fix duplicate classes error on 'classes' task
-    //id("com.google.protobuf") version "0.8.15"
-    id("org.jlleitschuh.gradle.ktlint") version "9.2.1"
+    // id("com.google.protobuf") version "0.8.15"
+    //id("org.jlleitschuh.gradle.ktlint") version "9.2.1"
 }
 
 java.sourceCompatibility = JavaVersion.VERSION_11
@@ -42,12 +42,12 @@ dependencies {
     api("io.grpc:grpc-kotlin-stub:1.1.0")
     implementation("io.grpc:protoc-gen-grpc-kotlin:1.1.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.2-native-mt")
-    implementation("com.google.protobuf:protobuf-gradle-plugin:0.8.17")
+    api("com.google.protobuf:protobuf-gradle-plugin:0.8.17")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
 }
 
 /*
-todo: fix duplicate classes error on 'classes' task
+// todo: fix duplicate classes error on 'classes' task
 protobuf {
     protoc{
         artifact = "com.google.protobuf:protoc:3.10.1"
