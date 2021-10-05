@@ -1,10 +1,11 @@
 package com.github.vol0n.utbotcppclion.actions
 
-import com.github.vol0n.utbotcppclion.client.send
+import com.github.vol0n.utbotcppclion.services.MyApplicationService
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.vfs.VirtualFileManager
 import kotlinx.coroutines.runBlocking
 import java.io.File
 
@@ -19,8 +20,9 @@ class SenderAction : AnAction() {
         val caretModel = editor.caretModel
         val selectedText = caretModel.currentCaret.selectedText
         if (selectedText != null) runBlocking {
+            val client = ApplicationManager.getApplication().getService(MyApplicationService::class.java).client
             // send request to server
-            val reply = send(selectedText)
+            val reply = client.greet(selectedText)
             ApplicationManager.getApplication().runWriteAction {
                 val projectPath = e.project?.basePath
                 // todo: take names from settings
@@ -34,6 +36,7 @@ class SenderAction : AnAction() {
                         file.createNewFile()
                         file.writeText(reply)
                     }
+                    VirtualFileManager.getInstance().asyncRefresh(null)
                 }
             }
         }

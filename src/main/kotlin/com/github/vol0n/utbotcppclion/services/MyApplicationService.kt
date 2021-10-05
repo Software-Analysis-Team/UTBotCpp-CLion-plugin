@@ -1,10 +1,7 @@
 package com.github.vol0n.utbotcppclion.services
 
-import com.github.vol0n.utbotcppclion.MyBundle
+import com.github.vol0n.utbotcppclion.client.GrpcStarter
 
 class MyApplicationService {
-
-    init {
-        println(MyBundle.message("applicationService"))
-    }
+    val client = GrpcStarter.startClient()
 }

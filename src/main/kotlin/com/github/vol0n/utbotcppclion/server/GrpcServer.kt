@@ -1,12 +1,13 @@
 package com.github.vol0n.utbotcppclion.server
 
+import com.github.vol0n.utbotcppclion.client.GrpcStarter
 import io.grpc.Server
 import io.grpc.ServerBuilder
 import io.grpc.hello.GreeterGrpcKt
 import io.grpc.hello.HelloReply
 import io.grpc.hello.HelloRequest
 
-class HelloWorldServer(private val port: Int) {
+class Server(private val port: Int) {
     private val server: Server = ServerBuilder
         .forPort(port)
         .addService(HelloWorldService())
@@ -18,7 +19,7 @@ class HelloWorldServer(private val port: Int) {
         Runtime.getRuntime().addShutdownHook(
             Thread {
                 println("*** shutting down gRPC server since JVM is shutting down")
-                this@HelloWorldServer.stop()
+                this@Server.stop()
                 println("*** server shut down")
             }
         )
@@ -44,8 +45,8 @@ class HelloWorldServer(private val port: Int) {
 }
 
 fun main() {
-    val port = System.getenv("PORT")?.toInt() ?: 50051
-    val server = HelloWorldServer(port)
+    val port = GrpcStarter.port
+    val server = Server(port)
     server.start()
     server.blockUntilShutdown()
 }

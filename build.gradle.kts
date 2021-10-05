@@ -1,16 +1,31 @@
+import com.google.protobuf.gradle.generateProtoTasks
+import com.google.protobuf.gradle.protobuf
+import com.google.protobuf.gradle.protoc
+import com.google.protobuf.gradle.id
+import com.google.protobuf.gradle.plugins
 import org.jetbrains.changelog.markdownToHTML
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-//import com.google.protobuf.gradle.*
 
 fun properties(key: String) = project.findProperty(key).toString()
 
-/*
+val coroutinesVersion by extra("1.5.2-native-mt")
+val protobufVersion by extra("3.18.0")
+val grpcVersion by extra("1.40.1")
+val grpcKotlinVersion by extra("1.1.0")
+
 buildscript {
+    val protobufPlugInVersion by extra("0.8.17")
+    val kotlinVersion by extra("1.5.30")
+
+    repositories {
+        mavenCentral()
+    }
+
     dependencies {
-        classpath("com.google.protobuf:protobuf-gradle-plugin:0.8.13")
+        classpath("com.google.protobuf:protobuf-gradle-plugin:$protobufPlugInVersion")
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
     }
 }
- */
 
 plugins {
     // Java support
@@ -23,38 +38,42 @@ plugins {
     id("org.jetbrains.changelog") version "1.3.0"
     // Gradle Qodana Plugin
     id("org.jetbrains.qodana") version "0.1.12"
+    // serialization
+    kotlin("plugin.serialization") version "1.5.30"
 
-    // gradle protobuf plugin: todo: fix duplicate classes error on 'classes' task
-    // id("com.google.protobuf") version "0.8.15"
-    //id("org.jlleitschuh.gradle.ktlint") version "9.2.1"
+    id("com.google.protobuf") version "0.8.15"
+    // id("org.jlleitschuh.gradle.ktlint") version "9.2.1"
+    idea
+    application
 }
 
 java.sourceCompatibility = JavaVersion.VERSION_11
 
 dependencies {
     implementation("org.jetbrains.kotlin:kotlin-reflect")
-    implementation("io.grpc:grpc-protobuf:1.40.1")
-    implementation("io.grpc:grpc-stub:1.40.1")
-    implementation("io.grpc:grpc-netty:1.40.1")
-    compileOnly("javax.annotation:javax.annotation-api:1.3.2")
-    api("com.google.protobuf:protobuf-java-util:3.18.0")
-    implementation("io.grpc:grpc-all:1.40.1")
-    api("io.grpc:grpc-kotlin-stub:1.1.0")
-    implementation("io.grpc:protoc-gen-grpc-kotlin:1.1.0")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.2-native-mt")
-    api("com.google.protobuf:protobuf-gradle-plugin:0.8.17")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutinesVersion")
+
+    // grpc and protobuf
+    implementation("com.google.protobuf:protobuf-java:$protobufVersion")
+    implementation("com.google.protobuf:protobuf-java-util:$protobufVersion")
+    implementation("io.grpc:grpc-netty-shaded:$grpcVersion")
+    implementation("io.grpc:grpc-protobuf:$grpcVersion")
+    implementation("io.grpc:grpc-stub:$grpcVersion")
+    implementation("io.grpc:grpc-kotlin-stub:$grpcKotlinVersion")
+    compileOnly("javax.annotation:javax.annotation-api:1.3.2")
+
+    // yaml
+    implementation("com.charleskorn.kaml:kaml:0.36.0")
 }
 
-/*
-// todo: fix duplicate classes error on 'classes' task
 protobuf {
-    protoc{
+    protoc {
         artifact = "com.google.protobuf:protoc:3.10.1"
     }
-    generatedFilesBaseDir = "$projectDir/src/main/java"
+
     plugins {
-        id("grpc"){
+        id("grpc") {
             artifact = "io.grpc:protoc-gen-grpc-java:1.33.1"
         }
         id("grpckt") {
@@ -70,7 +89,14 @@ protobuf {
         }
     }
 }
- */
+
+idea {
+    module {
+        sourceDirs.add(File("$projectDir/src/generated/main/java"))
+        sourceDirs.add(File("$projectDir/src/generated/main/grpc"))
+        sourceDirs.add(File("$projectDir/src/generated/main/grpckt"))
+    }
+}
 
 group = properties("pluginGroup")
 version = properties("pluginVersion")
@@ -83,12 +109,15 @@ repositories {
 // Configure Gradle IntelliJ Plugin - read more: https://github.com/JetBrains/gradle-intellij-plugin
 intellij {
     pluginName.set(properties("pluginName"))
-
     // use CLion version 2021.2.2
     version.set("2021.2.2")
     type.set("CL")
     downloadSources.set(false)
     updateSinceUntilBuild.set(true)
+
+    // to use auto-reload for ide instance
+    tasks.buildSearchableOptions.get().enabled = false
+    tasks.runIde.get().autoReloadPlugins.set(true)
 
     // Plugin Dependencies. Uses `platformPlugins` property from the gradle.properties file.
     plugins.set(properties("platformPlugins").split(',').map(String::trim).filter(String::isNotEmpty))
