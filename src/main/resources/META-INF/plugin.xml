@@ -9,13 +9,8 @@
 
     <extensions defaultExtensionNs="com.intellij">
         <applicationService serviceImplementation="com.github.vol0n.utbotcppclion.services.MyApplicationService"/>
-        <projectService serviceImplementation="com.github.vol0n.utbotcppclion.services.MyProjectService"/>
     </extensions>
 
-    <applicationListeners>
-        <listener class="com.github.vol0n.utbotcppclion.listeners.MyProjectManagerListener"
-                  topic="com.intellij.openapi.project.ProjectManagerListener"/>
-    </applicationListeners>
     <actions>
         <action id="com.github.vol0n.utbotcppclion.actions.SenderAction"
                 class="com.github.vol0n.utbotcppclion.actions.SenderAction" text="Send to grpc server"
