@@ -62,6 +62,7 @@ dependencies {
     implementation("io.grpc:grpc-stub:$grpcVersion")
     implementation("io.grpc:grpc-kotlin-stub:$grpcKotlinVersion")
     compileOnly("javax.annotation:javax.annotation-api:1.3.2")
+    implementation("com.google.protobuf:protobuf-kotlin:$protobufVersion")
 
     // yaml
     implementation("com.charleskorn.kaml:kaml:0.36.0")

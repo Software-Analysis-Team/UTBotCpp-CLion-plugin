@@ -5,20 +5,30 @@ import io.grpc.ManagedChannel
 import io.grpc.ManagedChannelBuilder
 import io.grpc.hello.GreeterGrpcKt
 import io.grpc.hello.HelloRequest
+import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
+import testsgen.Testgen
+import testsgen.TestsGenServiceGrpcKt
 import java.io.Closeable
 import java.util.concurrent.TimeUnit
 
 class GrpcClient(private val channel: ManagedChannel) : Closeable {
-    private val stub: GreeterGrpcKt.GreeterCoroutineStub = GreeterGrpcKt.GreeterCoroutineStub(channel)
+    private val helloStub: GreeterGrpcKt.GreeterCoroutineStub = GreeterGrpcKt.GreeterCoroutineStub(channel)
+    private val testgenStub: TestsGenServiceGrpcKt.TestsGenServiceCoroutineStub =
+        TestsGenServiceGrpcKt
+        .TestsGenServiceCoroutineStub(channel)
 
     suspend fun greet(name: String): String {
         val request = HelloRequest.newBuilder().setName(name).build()
-        val response = stub.sayHello(request)
+        val response = helloStub.sayHello(request)
         return response.message
     }
+
+    fun generateForFile(
+        request: Testgen.FileRequest
+    ): Flow<Testgen.TestsResponse> = testgenStub.generateFileTests(request)
 
     override fun close() {
         channel.shutdown().awaitTermination(5, TimeUnit.SECONDS)
