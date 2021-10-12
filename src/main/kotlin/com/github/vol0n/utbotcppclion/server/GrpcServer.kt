@@ -6,11 +6,18 @@ import io.grpc.ServerBuilder
 import io.grpc.hello.GreeterGrpcKt
 import io.grpc.hello.HelloReply
 import io.grpc.hello.HelloRequest
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+import testsgen.Testgen
+import testsgen.TestsGenServiceGrpcKt
+import testsgen.Util
+import java.io.File
 
 class Server(private val port: Int) {
     private val server: Server = ServerBuilder
         .forPort(port)
         .addService(HelloWorldService())
+        .addService(GenerateForFileService())
         .build()
 
     fun start() {
@@ -40,6 +47,27 @@ class Server(private val port: Int) {
                 .newBuilder()
                 .setMessage("Hello ${request.name}")
                 .build()
+        }
+    }
+
+    private class GenerateForFileService : TestsGenServiceGrpcKt.TestsGenServiceCoroutineImplBase() {
+        override fun generateFileTests(request: Testgen.FileRequest): Flow<Testgen.TestsResponse> {
+            println("in generateFileTests")
+            val projectPath = request.projectRequest.projectContext.projectPath
+            val pathToGeneratedTestFile = projectPath +
+                    "/" + request.projectRequest.projectContext.testDirPath +
+                    "/" + request.filePath
+            val generatedCode = "Hello " + File("${projectPath}/${request.filePath}").readText()
+            return flow {
+                emit(
+                    Testgen.TestsResponse.newBuilder().addTestSources(
+                        Util.SourceCode.newBuilder()
+                            .setFilePath(pathToGeneratedTestFile)
+                            .setCode(generatedCode)
+                            .build()
+                    ).build()
+                )
+            }
         }
     }
 }
