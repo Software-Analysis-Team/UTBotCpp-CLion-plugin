@@ -1,6 +1,5 @@
 package com.github.vol0n.utbotcppclion.services
 
-import com.github.vol0n.utbotcppclion.ui.SampleDialog
 import com.intellij.openapi.fileChooser.FileChooser
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.observable.properties.GraphPropertyImpl.Companion.graphProperty

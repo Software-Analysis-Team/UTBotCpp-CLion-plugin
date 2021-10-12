@@ -52,7 +52,6 @@ class Server(private val port: Int) {
 
     private class GenerateForFileService : TestsGenServiceGrpcKt.TestsGenServiceCoroutineImplBase() {
         override fun generateFileTests(request: Testgen.FileRequest): Flow<Testgen.TestsResponse> {
-            println("in generateFileTests")
             val projectPath = request.projectRequest.projectContext.projectPath
             val pathToGeneratedTestFile = projectPath +
                     "/" + request.projectRequest.projectContext.testDirPath +

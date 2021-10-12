@@ -30,16 +30,11 @@ class GenerateForFileAction: AnAction() {
                 .setFilePath(relativize(project.basePath ?: "", file.path))
                 .build()
             runBlocking {
-                println("Before sending request to server")
                 client.generateForFile(req).collect { testResponse ->
-                    println("Before accessing testSourcesList")
                     testResponse.testSourcesList.map { sourceCode ->
-                        println("Before creating file.")
                         File(sourceCode.filePath).also {
                             it.createNewFile()
                             it.writeText(sourceCode.code)
-                            println("Code: ${sourceCode.code}")
-                            println("File path: ${sourceCode.filePath}")
                         }
                         VirtualFileManager.getInstance().asyncRefresh(null)
                     }
