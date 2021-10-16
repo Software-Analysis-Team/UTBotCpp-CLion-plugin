@@ -32,8 +32,8 @@ data class ProjectSettings(
      */
     data class GrpcProjectSettings(
         var targetPath: String = "unknown",
-        var buildDirPath: String = "unknown",
-        var testDirPath: String = "unknown",
+        var buildDirPath: String = "build",
+        var testDirPath: String = "tests",
         var synchronizeCode: Boolean = false,
         var sourcePaths: List<String> = emptyList(),
     )

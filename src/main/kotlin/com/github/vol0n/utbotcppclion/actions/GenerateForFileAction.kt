@@ -9,7 +9,7 @@ import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.vfs.VirtualFileManager
+import com.intellij.openapi.vfs.LocalFileSystem
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.runBlocking
 import testsgen.Testgen
@@ -36,8 +36,8 @@ class GenerateForFileAction: AnAction() {
                             it.parentFile?.mkdirs()
                             it.createNewFile()
                             it.writeText(sourceCode.code)
+                            LocalFileSystem.getInstance()?.refreshAndFindFileByIoFile(it)
                         }
-                        VirtualFileManager.getInstance().asyncRefresh(null)
                     }
                 }
             }

@@ -3,9 +3,6 @@ package com.github.vol0n.utbotcppclion.server
 import com.github.vol0n.utbotcppclion.client.GrpcStarter
 import io.grpc.Server
 import io.grpc.ServerBuilder
-import io.grpc.hello.GreeterGrpcKt
-import io.grpc.hello.HelloReply
-import io.grpc.hello.HelloRequest
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import testsgen.Testgen
