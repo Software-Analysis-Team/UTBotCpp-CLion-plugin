@@ -4,6 +4,7 @@ import com.github.vol0n.utbotcppclion.grpcBuildMessages.buildProjectRequest
 import com.github.vol0n.utbotcppclion.services.GenerateTestsSettings
 import com.github.vol0n.utbotcppclion.services.ProjectSettings
 import com.github.vol0n.utbotcppclion.ui.GenerateTestsSettingsDialog
+import com.github.vol0n.utbotcppclion.utils.handleTestsResponse
 import com.github.vol0n.utbotcppclion.utils.relativize
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
@@ -30,16 +31,7 @@ class GenerateForFileAction: AnAction() {
                 .setFilePath(relativize(project.basePath ?: "", file.path))
                 .build()
             runBlocking {
-                client.generateForFile(req).collect { testResponse ->
-                    testResponse.testSourcesList.map { sourceCode ->
-                        File(sourceCode.filePath).also {
-                            it.parentFile?.mkdirs()
-                            it.createNewFile()
-                            it.writeText(sourceCode.code)
-                            LocalFileSystem.getInstance()?.refreshAndFindFileByIoFile(it)
-                        }
-                    }
-                }
+                client.generateForFile(req).handleTestsResponse()
             }
         }
     }

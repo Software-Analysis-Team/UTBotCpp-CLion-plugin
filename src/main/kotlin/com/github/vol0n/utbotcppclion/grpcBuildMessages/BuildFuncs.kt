@@ -5,6 +5,7 @@ import com.github.vol0n.utbotcppclion.services.ProjectSettings
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import testsgen.Testgen
+import testsgen.Util
 
 fun buildSettingsContext(params: GenerateTestsSettings): Testgen.SettingsContext {
     return Testgen.SettingsContext.newBuilder()
@@ -34,5 +35,19 @@ fun buildProjectRequest(project: Project, params: ProjectSettings): Testgen.Proj
         .setTargetPath(params.getTargetPath())
         .addAllSourcePaths(params.getSourcePaths())
         .setSynchronizeCode(params.getSynchronizeCode())
+        .build()
+}
+
+fun buildSourceInfo(line: Int, filePath: String): Util.SourceInfo {
+    return Util.SourceInfo.newBuilder()
+        .setLine(line)
+        .setFilePath(filePath)
+        .build()
+}
+
+fun buildLineRequest(project: Project, params: ProjectSettings, line: Int, filePath: String): Testgen.LineRequest {
+    return Testgen.LineRequest.newBuilder()
+        .setProjectRequest(buildProjectRequest(project, params))
+        .setSourceInfo(buildSourceInfo(line, filePath))
         .build()
 }

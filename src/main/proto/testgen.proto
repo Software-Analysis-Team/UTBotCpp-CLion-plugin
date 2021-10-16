@@ -6,6 +6,7 @@ import "util.proto";
 
 service TestsGenService {
     rpc GenerateFileTests(FileRequest) returns(stream TestsResponse) {}
+    rpc GenerateLineTests(LineRequest) returns(stream TestsResponse) {}
 }
 
 message ProjectContext {
@@ -36,6 +37,11 @@ message ProjectRequest {
 message FileRequest {
     ProjectRequest projectRequest = 1;
     string filePath = 2;
+}
+
+message LineRequest {
+    ProjectRequest projectRequest = 1;
+    SourceInfo sourceInfo = 2;
 }
 
 message StubsResponse {
