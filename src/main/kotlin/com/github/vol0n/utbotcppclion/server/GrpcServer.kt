@@ -9,12 +9,13 @@ import testsgen.Testgen
 import testsgen.TestsGenServiceGrpcKt
 import testsgen.Util
 import java.io.File
+import java.nio.file.Files
 import java.nio.file.Paths
 
 class Server(private val port: Int) {
     private val server: Server = ServerBuilder
         .forPort(port)
-        .addService(GenerateForFileService())
+        .addService(TestGenService())
         .build()
 
     fun start() {
@@ -37,7 +38,7 @@ class Server(private val port: Int) {
         server.awaitTermination()
     }
 
-    private class GenerateForFileService : TestsGenServiceGrpcKt.TestsGenServiceCoroutineImplBase() {
+    private class TestGenService : TestsGenServiceGrpcKt.TestsGenServiceCoroutineImplBase() {
         override fun generateFileTests(request: Testgen.FileRequest): Flow<Testgen.TestsResponse> {
             val projectPath = request.projectRequest.projectContext.projectPath
             val pathToGeneratedTestFile = Paths.get(
@@ -56,7 +57,31 @@ class Server(private val port: Int) {
                 )
             }
         }
+
+        override fun generateLineTests(request: Testgen.LineRequest): Flow<Testgen.TestsResponse> {
+            val projectPath = request.projectRequest.projectContext.projectPath
+            val pathToGeneratedTestFile = Paths.get(
+                projectPath,
+                request.projectRequest.projectContext.testDirPath,
+                request.sourceInfo.filePath)
+            val line: String
+            Files.lines(Paths.get(projectPath, request.sourceInfo.filePath)).use {
+                line = it.skip(request.sourceInfo.line.toLong()).findFirst().get()
+            }
+            val generatedCode = "The line with zero based index ${request.sourceInfo.line}:\n$line"
+            return flow {
+                emit(
+                    Testgen.TestsResponse.newBuilder().addTestSources(
+                        Util.SourceCode.newBuilder()
+                            .setFilePath(pathToGeneratedTestFile.toString())
+                            .setCode(generatedCode)
+                            .build()
+                    ).build()
+                )
+            }
+        }
     }
+
 }
 
 fun main() {
