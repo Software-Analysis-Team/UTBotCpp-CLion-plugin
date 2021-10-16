@@ -18,10 +18,10 @@ data class ProjectSettings(
     val project: Project,
 ) : PersistentStateComponent<ProjectSettings.GrpcProjectSettings> {
 
-    private val myState = GrpcProjectSettings()
+    private val projectState = GrpcProjectSettings()
 
     override fun getState(): GrpcProjectSettings {
-        return myState
+        return projectState
     }
 
     /**
@@ -44,7 +44,7 @@ data class ProjectSettings(
     fun getSynchronizeCode() = state.synchronizeCode
     fun getSourcePaths() = state.sourcePaths.map { relativize(project.basePath ?: "", it) }.toList()
 
-    override fun loadState(p0: GrpcProjectSettings) {
-        XmlSerializerUtil.copyBean(p0, myState)
+    override fun loadState(state: GrpcProjectSettings) {
+        XmlSerializerUtil.copyBean(state, projectState)
     }
 }

@@ -33,6 +33,7 @@ class GenerateForFileAction: AnAction() {
                 client.generateForFile(req).collect { testResponse ->
                     testResponse.testSourcesList.map { sourceCode ->
                         File(sourceCode.filePath).also {
+                            it.parentFile?.mkdirs()
                             it.createNewFile()
                             it.writeText(sourceCode.code)
                         }

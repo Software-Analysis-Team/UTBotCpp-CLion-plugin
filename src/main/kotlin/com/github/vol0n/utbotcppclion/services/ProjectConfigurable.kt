@@ -16,41 +16,41 @@ import java.awt.Dimension
 /**
  * Get project related info from settings menu.
  */
-class ProjectConfigurable(val project: Project): BoundConfigurable(
+class ProjectConfigurable(private val targetProject: Project): BoundConfigurable(
     "Project Settings for Generating Tests"
 ) {
     private val graphProperty = PropertyGraph()
-    private val settingsState = project.getService(ProjectSettings::class.java).state
+    private val settingsState = targetProject.getService(ProjectSettings::class.java).state
     private val buildDirPath = graphProperty.graphProperty { settingsState.buildDirPath }
     private val targetPath = graphProperty.graphProperty { settingsState.targetPath }
     private val testsDirPath = graphProperty.graphProperty { settingsState.testDirPath }
     private val synchronizeCode = graphProperty.graphProperty { settingsState.synchronizeCode }
-    private val myListModel = CollectionListModel(*project.getService(ProjectSettings::class.java).state.sourcePaths.toTypedArray())
+    private val sourcePathListModel = CollectionListModel(*targetProject.getService(ProjectSettings::class.java).state.sourcePaths.toTypedArray())
 
     override fun createPanel(): DialogPanel {
         return panel {
             row {
                 label("Build directory: ")
                 textFieldWithBrowseButton(buildDirPath,
-                    project = project,
-                    fileChooserDescriptor = FileChooserDescriptorFactory.createSingleFolderDescriptor()) {
-                    it.path
+                    project = targetProject,
+                    fileChooserDescriptor = FileChooserDescriptorFactory.createSingleFolderDescriptor()) { folder ->
+                    folder.path
                 }
             }
             row {
                 label("Target path: ")
                 textFieldWithBrowseButton(targetPath,
-                    project = project,
-                    fileChooserDescriptor = FileChooserDescriptorFactory.createSingleFileDescriptor()) {
-                    it.path
+                    project = targetProject,
+                    fileChooserDescriptor = FileChooserDescriptorFactory.createSingleFileDescriptor()) { file ->
+                    file.path
                 }
             }
             row {
                 label("Tests directory: ")
                 textFieldWithBrowseButton(testsDirPath,
-                    project = project,
-                    fileChooserDescriptor = FileChooserDescriptorFactory.createSingleFolderDescriptor()) {
-                    it.path
+                    project = targetProject,
+                    fileChooserDescriptor = FileChooserDescriptorFactory.createSingleFolderDescriptor()) { folder ->
+                    folder.path
                 }
             }
             row {
@@ -61,15 +61,15 @@ class ProjectConfigurable(val project: Project): BoundConfigurable(
             }
             row {
                 component(
-                    ToolbarDecorator.createDecorator(JList(myListModel))
+                    ToolbarDecorator.createDecorator(JList(sourcePathListModel))
                     .setAddAction {
                         FileChooser.chooseFile(
-                            FileChooserDescriptorFactory.createMultipleFilesNoJarsDescriptor(), project, null
+                            FileChooserDescriptorFactory.createMultipleFilesNoJarsDescriptor(), targetProject, null
                         ) {
-                            myListModel.add(it.path)
+                            sourcePathListModel.add(it.path)
                         }
                     }.setRemoveAction { actionBtn ->
-                        myListModel.remove((actionBtn.contextComponent as JList<String>).selectedIndex)
+                        sourcePathListModel.remove((actionBtn.contextComponent as JList<String>).selectedIndex)
                     }.setPreferredSize(Dimension(500, 200))
                     .createPanel())
             }
@@ -82,7 +82,7 @@ class ProjectConfigurable(val project: Project): BoundConfigurable(
                 || (buildDirPath.get() != settingsState.buildDirPath)
                 || (testsDirPath.get() != settingsState.testDirPath)
                 || (synchronizeCode.get() != settingsState.synchronizeCode)
-                || (myListModel.toList() != settingsState.sourcePaths)
+                || (sourcePathListModel.toList() != settingsState.sourcePaths)
     }
 
     override fun apply() {
@@ -91,7 +91,7 @@ class ProjectConfigurable(val project: Project): BoundConfigurable(
         settingsState.buildDirPath = buildDirPath.get()
         settingsState.testDirPath = testsDirPath.get()
         settingsState.synchronizeCode = synchronizeCode.get()
-        settingsState.sourcePaths = myListModel.toList()
+        settingsState.sourcePaths = sourcePathListModel.toList()
     }
 
     override fun reset() {
@@ -100,7 +100,7 @@ class ProjectConfigurable(val project: Project): BoundConfigurable(
         buildDirPath.set(settingsState.buildDirPath)
         testsDirPath.set(settingsState.testDirPath)
         synchronizeCode.set(settingsState.synchronizeCode)
-        myListModel.also {
+        sourcePathListModel.also {
             it.removeAll()
             it.addAll(0, settingsState.sourcePaths)
         }

@@ -17,12 +17,6 @@
     </extensions>
 
     <actions>
-        <action id="com.github.vol0n.utbotcppclion.actions.SenderAction"
-                class="com.github.vol0n.utbotcppclion.actions.SenderAction" text="Send to Grpc Server"
-                description="Send a text to the grpc server">
-            <add-to-group group-id="EditorPopupMenu" anchor="last"/>
-            <keyboard-shortcut keymap="$default" first-keystroke="shift meta I"/>
-        </action>
         <action id="com.github.vol0n.utbotcppclion.actions.GenerateForFileAction"
                 class="com.github.vol0n.utbotcppclion.actions.GenerateForFileAction" text="UTBot: Generate Tests for File"
                 description="Generates tests for file via grpc server">
