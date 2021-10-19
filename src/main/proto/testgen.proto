@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+package testsgen;
+
+import "util.proto";
+
+service TestsGenService {
+    rpc GenerateFileTests(FileRequest) returns(stream TestsResponse) {}
+}
+
+message ProjectContext {
+    string projectName = 1;
+    string projectPath = 2;
+    string testDirPath = 3;
+    string buildDirRelativePath = 4;
+    string resultsDirRelativePath = 5;
+}
+
+message SettingsContext {
+    bool generateForStaticFunctions = 1;
+    bool verbose = 2;
+    int32 timeoutPerFunction = 3;
+    int32 timeoutPerTest = 4;
+    bool useDeterministicSearcher = 5;
+    bool useStubs = 6;
+}
+
+message ProjectRequest {
+    ProjectContext projectContext = 1;
+    SettingsContext settingsContext = 2;
+    repeated string sourcePaths = 3;
+    bool synchronizeCode = 4;
+    string targetPath = 5;
+}
+
+message FileRequest {
+    ProjectRequest projectRequest = 1;
+    string filePath = 2;
+}
+
+message StubsResponse {
+    repeated SourceCode stubSources = 1;
+    Progress progress = 2;
+}
+
+message TestsResponse {
+    repeated SourceCode testSources = 1;
+    StubsResponse stubs = 2;
+    Progress progress = 3;
+}

@@ -8,15 +8,19 @@
 <!--    <depends>com.intellij.modules.platform</depends> -->
 
     <extensions defaultExtensionNs="com.intellij">
-        <applicationService serviceImplementation="com.github.vol0n.utbotcppclion.services.MyApplicationService"/>
+        <applicationService serviceImplementation="com.github.vol0n.utbotcppclion.services.GenerateTestsSettings"/>
+        <projectService serviceImplementation="com.github.vol0n.utbotcppclion.services.ProjectSettings"/>
+        <projectConfigurable parentId="tools" instance="com.github.vol0n.utbotcppclion.services.ProjectConfigurable"
+                             id="com.github.vol0n.utbotcppclion.services.ProjectConfigurable"
+                             displayName="UT BOT: Project Settings for Generating Tests"
+                             nonDefaultProject="true"/>
     </extensions>
 
     <actions>
-        <action id="com.github.vol0n.utbotcppclion.actions.SenderAction"
-                class="com.github.vol0n.utbotcppclion.actions.SenderAction" text="Send to grpc server"
-                description="send a text to the grpc server">
-            <add-to-group group-id="EditorPopupMenu" anchor="last"/>
-            <keyboard-shortcut keymap="$default" first-keystroke="shift meta I"/>
+        <action id="com.github.vol0n.utbotcppclion.actions.GenerateForFileAction"
+                class="com.github.vol0n.utbotcppclion.actions.GenerateForFileAction" text="UTBot: Generate Tests for File"
+                description="Generates tests for file via grpc server">
+            <add-to-group group-id="ProjectViewPopupMenuModifyGroup" anchor="first"/>
         </action>
     </actions>
 </idea-plugin>

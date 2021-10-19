@@ -3,14 +3,18 @@ package com.github.vol0n.utbotcppclion.server
 import com.github.vol0n.utbotcppclion.client.GrpcStarter
 import io.grpc.Server
 import io.grpc.ServerBuilder
-import io.grpc.hello.GreeterGrpcKt
-import io.grpc.hello.HelloReply
-import io.grpc.hello.HelloRequest
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+import testsgen.Testgen
+import testsgen.TestsGenServiceGrpcKt
+import testsgen.Util
+import java.io.File
+import java.nio.file.Paths
 
 class Server(private val port: Int) {
     private val server: Server = ServerBuilder
         .forPort(port)
-        .addService(HelloWorldService())
+        .addService(GenerateForFileService())
         .build()
 
     fun start() {
@@ -33,13 +37,24 @@ class Server(private val port: Int) {
         server.awaitTermination()
     }
 
-    private class HelloWorldService : GreeterGrpcKt.GreeterCoroutineImplBase() {
-        override suspend fun sayHello(request: HelloRequest): HelloReply {
-            println("Server received message: ${request.name}")
-            return HelloReply
-                .newBuilder()
-                .setMessage("Hello ${request.name}")
-                .build()
+    private class GenerateForFileService : TestsGenServiceGrpcKt.TestsGenServiceCoroutineImplBase() {
+        override fun generateFileTests(request: Testgen.FileRequest): Flow<Testgen.TestsResponse> {
+            val projectPath = request.projectRequest.projectContext.projectPath
+            val pathToGeneratedTestFile = Paths.get(
+                projectPath,
+                request.projectRequest.projectContext.testDirPath,
+                request.filePath).toString()
+            val generatedCode = "Hello " + File("${projectPath}/${request.filePath}").readText()
+            return flow {
+                emit(
+                    Testgen.TestsResponse.newBuilder().addTestSources(
+                        Util.SourceCode.newBuilder()
+                            .setFilePath(pathToGeneratedTestFile)
+                            .setCode(generatedCode)
+                            .build()
+                    ).build()
+                )
+            }
         }
     }
 }
