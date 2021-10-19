@@ -80,6 +80,12 @@ class Server(private val port: Int) {
                 )
             }
         }
+
+        override suspend fun getFunctionReturnType(request: Testgen.FunctionRequest): Testgen.FunctionTypeResponse {
+            return Testgen.FunctionTypeResponse.newBuilder().setValidationType(
+                Util.ValidationType.INT32_T
+            ).build()
+        }
     }
 
 }

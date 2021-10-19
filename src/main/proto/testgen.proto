@@ -7,6 +7,7 @@ import "util.proto";
 service TestsGenService {
     rpc GenerateFileTests(FileRequest) returns(stream TestsResponse) {}
     rpc GenerateLineTests(LineRequest) returns(stream TestsResponse) {}
+    rpc GetFunctionReturnType(FunctionRequest) returns(FunctionTypeResponse) {}
 }
 
 message ProjectContext {
@@ -44,6 +45,14 @@ message LineRequest {
     SourceInfo sourceInfo = 2;
 }
 
+message FunctionRequest {
+    LineRequest lineRequest = 1;
+}
+
+message FunctionTypeResponse {
+    ValidationType validationType = 1;
+}
+
 message StubsResponse {
     repeated SourceCode stubSources = 1;
     Progress progress = 2;
@@ -53,4 +62,9 @@ message TestsResponse {
     repeated SourceCode testSources = 1;
     StubsResponse stubs = 2;
     Progress progress = 3;
+}
+
+message PredicateRequest {
+    LineRequest lineRequest = 1;
+    PredicateInfo predicateInfo = 2;
 }
