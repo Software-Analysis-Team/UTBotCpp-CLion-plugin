@@ -51,3 +51,9 @@ fun buildLineRequest(project: Project, params: ProjectSettings, line: Int, fileP
         .setSourceInfo(buildSourceInfo(line, filePath))
         .build()
 }
+
+fun buildFunctionRequest(project: Project, params: ProjectSettings, line: Int, filePath: String): Testgen.FunctionRequest {
+    return Testgen.FunctionRequest.newBuilder()
+        .setLineRequest(buildLineRequest(project, params, line, filePath))
+        .build()
+}

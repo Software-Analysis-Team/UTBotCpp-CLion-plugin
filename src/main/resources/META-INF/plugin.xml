@@ -4,8 +4,11 @@
     <name>UTBotCppClion</name>
     <vendor>vol0n</vendor>
 
+    <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.modules.clion.ide</depends>
+    <depends>com.intellij.modules.lang</depends>
+    <depends>com.intellij.modules.cidr.lang</depends>
     <depends>com.intellij.modules.clion</depends>
-<!--    <depends>com.intellij.modules.platform</depends> -->
 
     <extensions defaultExtensionNs="com.intellij">
         <applicationService serviceImplementation="com.github.vol0n.utbotcppclion.services.GenerateTestsSettings"/>
@@ -25,6 +28,12 @@
         <action id="com.github.vol0n.utbotcppclion.actions.GenerateForLineAction"
                 class="com.github.vol0n.utbotcppclion.actions.GenerateForLineAction" text="UT Bot: Generate for Line"
                 description="Generate tests for line uder carret">
+            <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+        </action>
+        <action id="com.github.vol0n.utbotcppclion.actions.GenerateForPredicateAction"
+                class="com.github.vol0n.utbotcppclion.actions.GenerateForPredicateAction"
+                text="UT Bot: Generate tests for predicate on this call"
+                description="Generate tests for given predicate on call">
             <add-to-group group-id="EditorPopupMenu" anchor="last"/>
         </action>
     </actions>

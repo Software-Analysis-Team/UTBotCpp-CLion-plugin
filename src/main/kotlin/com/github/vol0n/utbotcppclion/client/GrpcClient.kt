@@ -24,6 +24,10 @@ class GrpcClient(private val channel: ManagedChannel) : Closeable {
         request: Testgen.LineRequest
     ): Flow<Testgen.TestsResponse> = stub.generateLineTests(request)
 
+    suspend fun getFunctionReturnType(
+        request: Testgen.FunctionRequest
+    ): Testgen.FunctionTypeResponse = stub.getFunctionReturnType(request)
+
     override fun close() {
         channel.shutdown().awaitTermination(5, TimeUnit.SECONDS)
     }
