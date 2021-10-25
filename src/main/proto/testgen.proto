@@ -8,6 +8,7 @@ service TestsGenService {
     rpc GenerateFileTests(FileRequest) returns(stream TestsResponse) {}
     rpc GenerateLineTests(LineRequest) returns(stream TestsResponse) {}
     rpc GetFunctionReturnType(FunctionRequest) returns(FunctionTypeResponse) {}
+    rpc GeneratePredicateTests(PredicateRequest) returns(stream TestsResponse) {}
 }
 
 message ProjectContext {

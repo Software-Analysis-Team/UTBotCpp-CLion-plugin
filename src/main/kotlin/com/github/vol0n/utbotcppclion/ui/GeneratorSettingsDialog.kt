@@ -1,12 +1,13 @@
 package com.github.vol0n.utbotcppclion.ui
 
-import com.github.vol0n.utbotcppclion.services.GenerateTestsSettings
+import com.github.vol0n.utbotcppclion.services.GeneratorSettings
+import com.intellij.openapi.components.service
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.ui.layout.panel
 import javax.swing.JComponent
 
-class GenerateTestsSettingsDialog(val applicationService: GenerateTestsSettings) : DialogWrapper(true) {
-
+class GeneratorSettingsDialog : DialogWrapper(true) {
+    val applicationService = service<GeneratorSettings>()
     init {
         title = "Select Options for Generating Tests";
         init();

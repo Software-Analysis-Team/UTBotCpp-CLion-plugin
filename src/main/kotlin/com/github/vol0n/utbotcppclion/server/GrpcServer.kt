@@ -82,12 +82,42 @@ class Server(private val port: Int) {
         }
 
         override suspend fun getFunctionReturnType(request: Testgen.FunctionRequest): Testgen.FunctionTypeResponse {
-            return Testgen.FunctionTypeResponse.newBuilder().setValidationType(
-                Util.ValidationType.INT32_T
+            println("Before taking random type")
+            val t = Testgen.FunctionTypeResponse.newBuilder().setValidationType(
+                Util.ValidationType.values().random()
             ).build()
+            println("After taking random type")
+            return t
+        }
+
+        override fun generatePredicateTests(request: Testgen.PredicateRequest): Flow<Testgen.TestsResponse> {
+            val projectPath = request.lineRequest.projectRequest.projectContext.projectPath
+            val pathToGeneratedTestFile = Paths.get(
+                projectPath,
+                request.lineRequest.projectRequest.projectContext.testDirPath,
+                request.lineRequest.sourceInfo.filePath)
+            val line: String
+            Files.lines(Paths.get(projectPath, request.lineRequest.sourceInfo.filePath)).use {
+                line = it.skip(request.lineRequest.sourceInfo.line.toLong()).findFirst().get()
+            }
+            val generatedCode = "The line with zero based index ${request.lineRequest.sourceInfo.line}:\n$line" +
+                    "\nThe predicate info received: " +
+                    "predicate: ${request.predicateInfo.predicate} " +
+                    "return value: ${request.predicateInfo.returnValue} " +
+                    "type: ${request.predicateInfo.type}"
+
+            return flow {
+                emit(
+                    Testgen.TestsResponse.newBuilder().addTestSources(
+                        Util.SourceCode.newBuilder()
+                            .setFilePath(pathToGeneratedTestFile.toString())
+                            .setCode(generatedCode)
+                            .build()
+                    ).build()
+                )
+            }
         }
     }
-
 }
 
 fun main() {
