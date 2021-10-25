@@ -1,13 +1,17 @@
-package com.github.vol0n.utbotcppclion.grpcBuildMessages
+package com.github.vol0n.utbotcppclion.actions
 
-import com.github.vol0n.utbotcppclion.services.GenerateTestsSettings
+import com.github.vol0n.utbotcppclion.services.GeneratorSettings
 import com.github.vol0n.utbotcppclion.services.ProjectSettings
+import com.github.vol0n.utbotcppclion.utils.relativize
+import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import testsgen.Testgen
 import testsgen.Util
 
-fun buildSettingsContext(params: GenerateTestsSettings): Testgen.SettingsContext {
+fun buildSettingsContext(params: GeneratorSettings): Testgen.SettingsContext {
     return Testgen.SettingsContext.newBuilder()
         .setVerbose(params.verbose)
         .setUseStubs(params.useStubs)
@@ -30,7 +34,7 @@ fun buildProjectContext(params: ProjectSettings, project: Project): Testgen.Proj
 
 fun buildProjectRequest(project: Project, params: ProjectSettings): Testgen.ProjectRequest {
     return Testgen.ProjectRequest.newBuilder()
-        .setSettingsContext(buildSettingsContext(ApplicationManager.getApplication().getService(GenerateTestsSettings::class.java)))
+        .setSettingsContext(buildSettingsContext(ApplicationManager.getApplication().getService(GeneratorSettings::class.java)))
         .setProjectContext(buildProjectContext(params, project))
         .setTargetPath(params.getTargetPath())
         .addAllSourcePaths(params.getSourcePaths())
@@ -55,5 +59,42 @@ fun buildLineRequest(project: Project, params: ProjectSettings, line: Int, fileP
 fun buildFunctionRequest(project: Project, params: ProjectSettings, line: Int, filePath: String): Testgen.FunctionRequest {
     return Testgen.FunctionRequest.newBuilder()
         .setLineRequest(buildLineRequest(project, params, line, filePath))
+        .build()
+}
+
+fun buildLineRequestFromEvent(e: AnActionEvent): Testgen.LineRequest {
+    val project = e.getRequiredData(CommonDataKeys.PROJECT)
+    val filePath = e.getRequiredData(CommonDataKeys.VIRTUAL_FILE).path
+    val projectPath: String = project.basePath!!
+    val relativeFilePath = relativize(projectPath, filePath)
+    val editor = e.getRequiredData(CommonDataKeys.EDITOR)
+    val projectSettings = project.service<ProjectSettings>()
+    val lineNumber = editor.caretModel.logicalPosition.line
+    return buildLineRequest(project, projectSettings, lineNumber, relativeFilePath)
+}
+
+fun buildFunctionRequestFromEvent(e: AnActionEvent): Testgen.FunctionRequest {
+    val lineRequest = buildLineRequestFromEvent(e)
+    return Testgen.FunctionRequest.newBuilder()
+        .setLineRequest(lineRequest)
+        .build()
+}
+
+fun buildFileRequestFromEvent(e: AnActionEvent): Testgen.FileRequest {
+    // this function is supposed to be called in actions' performAction(), so update() validated these properties
+    val project: Project = e.project!!
+    val projectPath: String = project.basePath!!
+    val filePath = e.getRequiredData(CommonDataKeys.VIRTUAL_FILE).path
+    return Testgen.FileRequest.newBuilder()
+        .setProjectRequest(buildProjectRequest(project, project.service()))
+        .setFilePath(relativize(projectPath, filePath))
+        .build()
+}
+
+fun buildPredicateInfo(predicate: String, returnValue: String, type: Util.ValidationType): Util.PredicateInfo {
+    return Util.PredicateInfo.newBuilder()
+        .setPredicate(predicate)
+        .setReturnValue(returnValue)
+        .setType(type)
         .build()
 }

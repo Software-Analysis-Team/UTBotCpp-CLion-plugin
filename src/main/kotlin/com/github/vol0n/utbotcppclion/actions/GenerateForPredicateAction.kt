@@ -1,126 +1,135 @@
 package com.github.vol0n.utbotcppclion.actions
 
-import com.github.vol0n.utbotcppclion.grpcBuildMessages.buildFunctionRequest
-import com.github.vol0n.utbotcppclion.services.GenerateTestsSettings
-import com.github.vol0n.utbotcppclion.services.ProjectSettings
-import com.github.vol0n.utbotcppclion.utils.relativize
+import com.github.vol0n.utbotcppclion.actions.utils.client
+import com.github.vol0n.utbotcppclion.actions.utils.coroutinesScopeForGrpc
+import com.github.vol0n.utbotcppclion.utils.handleTestsResponse
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.ui.ComponentValidator
 import com.intellij.openapi.ui.ValidationInfo
+import com.intellij.openapi.ui.popup.JBPopup
 import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.ui.DocumentAdapter
 import com.intellij.ui.components.fields.ExtendableTextField
 import javax.swing.ListSelectionModel
 import javax.swing.event.DocumentEvent
-import kotlinx.coroutines.runBlocking
 import testsgen.Util.ValidationType
 import java.awt.Dimension
 import java.awt.event.KeyAdapter
 import java.awt.event.KeyEvent
 import java.math.BigInteger
 import java.util.function.Supplier
-import com.jetbrains.cidr.*
+import com.jetbrains.cidr.lang.psi.OCFunctionDefinition
+import kotlinx.coroutines.launch
+import testsgen.Testgen
 
 class GenerateForPredicateAction: AnAction() {
-    override fun update(e: AnActionEvent) {
+
+    private fun getContainingFunFromAction(e: AnActionEvent): OCFunctionDefinition? {
         val editor = e.getData(CommonDataKeys.EDITOR)
         val psiFile = e.getData(CommonDataKeys.PSI_FILE)
-        if (editor == null || psiFile == null) {
-            e.presentation.isEnabled = false
-            return
-        }
-        val offset = editor.caretModel.offset
-        val element = psiFile.findElementAt(offset)
-        if (element == null) {
-            e.presentation.isEnabled = false
-            return
-        }
-         val containingFun = PsiTreeUtil.getParentOfType(element, OCFunctionDefinition::class.java)
-         // println(containingFun?.name)
+        val offset = editor?.caretModel?.offset ?: return null
+        val element = psiFile?.findElementAt(offset)
+        return PsiTreeUtil.getParentOfType(element, OCFunctionDefinition::class.java)
+    }
+
+    override fun update(e: AnActionEvent) {
+        val containingFun = getContainingFunFromAction(e)
+        e.presentation.isEnabledAndVisible = (containingFun != null)
+    }
+
+    fun createListPopup(title: String, list: List<String>, onChoose: (String) -> Unit): JBPopup {
+        return JBPopupFactory.getInstance().createPopupChooserBuilder(list)
+            .setResizable(false)
+            .setMovable(false)
+            .setTitle(title)
+            .setSelectionMode(ListSelectionModel.SINGLE_SELECTION)
+            .setCloseOnEnter(true)
+            .setItemChosenCallback(onChoose)
+            .createPopup()
     }
 
     override fun actionPerformed(e: AnActionEvent) {
-        val editor = e.getData(CommonDataKeys.EDITOR)
-        val project = e.getData(CommonDataKeys.PROJECT)
-        val file = e.getData(CommonDataKeys.VIRTUAL_FILE)
-        val lineNumber = editor!!.caretModel.logicalPosition.line
-        val client = ApplicationManager.getApplication().getService(GenerateTestsSettings::class.java).client
-        val projectSettings = project!!.getService(ProjectSettings::class.java) ?: return
-        runBlocking {
-            val type = client.getFunctionReturnType(
-                buildFunctionRequest(project, projectSettings, lineNumber,
-                relativize(project.basePath!!, file!!.path)
-                )
-            )
-            getPredicate(type.validationType, e)
+
+        fun sendPredicateToServer(validationType: ValidationType, returnValue: String, predicate: String) {
+            val predicateInfo = buildPredicateInfo(predicate, returnValue, validationType)
+            val predicateRequest = Testgen.PredicateRequest.newBuilder()
+                .setLineRequest(buildLineRequestFromEvent(e))
+                .setPredicateInfo(predicateInfo)
+                .build()
+            coroutinesScopeForGrpc.launch {
+                client.generateForPredicate(predicateRequest).handleTestsResponse()
+            }
         }
-    }
 
-    private fun getReturnValue(validationType: ValidationType, predicate: String, e: AnActionEvent) {
-        val textfield = ExtendableTextField()
-        textfield.minimumSize = Dimension(100, textfield.width)
-        textfield.text = defaultReturnValues[validationType]
-        textfield.selectAll()
-        val popup = JBPopupFactory.getInstance().createComponentPopupBuilder(textfield, null)
-            .setFocusable(true)
-            .setRequestFocus(true)
-            .setTitle("Specify Return Value of type ${validationTypeName[validationType]}")
-            .createPopup()
+        fun getReturnValue(validationType: ValidationType, predicate: String) {
+            val textField = ExtendableTextField()
+            textField.minimumSize = Dimension(100, textField.width)
+            textField.text = defaultReturnValues[validationType]
+            textField.selectAll()
+            val popup = JBPopupFactory.getInstance().createComponentPopupBuilder(textField, null)
+                .setFocusable(true)
+                .setRequestFocus(true)
+                .setTitle("Specify Return Value of type ${validationTypeName[validationType]}")
+                .createPopup()
 
-        var canClosePopup = false
-        ComponentValidator(popup).withValidator(Supplier<ValidationInfo?> {
-            val validationResult = returnValueValidators[validationType]?.let { it(textfield.text) }
-            if (validationResult == null) {
-                canClosePopup = true
-                null
-            } else {
-                canClosePopup = false
-                ValidationInfo(validationResult, textfield)
-            }
-        }).installOn(textfield)
-
-        textfield.document.addDocumentListener(object : DocumentAdapter() {
-            override fun textChanged(p0: DocumentEvent) {
-                ComponentValidator.getInstance(textfield).ifPresent { v ->
-                    v.revalidate()
+            var canClosePopup = true
+            ComponentValidator(popup).withValidator(Supplier<ValidationInfo?> {
+                val validationResult = returnValueValidators[validationType]?.let { it(textField.text) }
+                if (validationResult == null) {
+                    canClosePopup = true
+                    null
+                } else {
+                    canClosePopup = false
+                    ValidationInfo(validationResult, textField)
                 }
-            }
-        })
+            }).installOn(textField)
 
-        textfield.addKeyListener(object : KeyAdapter() {
-            override fun keyPressed(e: KeyEvent) {
-                if (e.keyCode == KeyEvent.VK_ENTER) {
-                    if (canClosePopup) {
-                        popup.cancel()
+            textField.document.addDocumentListener(object : DocumentAdapter() {
+                override fun textChanged(p0: DocumentEvent) {
+                    ComponentValidator.getInstance(textField).ifPresent { v ->
+                        v.revalidate()
                     }
                 }
-            }
-        })
-        popup.showInBestPositionFor(e.dataContext)
-    }
+            })
 
-    private fun getPredicate(validationType: ValidationType, e: AnActionEvent) {
-        val possiblePredicates = if (validationType == ValidationType.STRING) {
-            listOf("==")
-        } else {
-            listOf("==", "<=", "=>", "<", ">")
+            textField.addKeyListener(object : KeyAdapter() {
+                override fun keyPressed(e: KeyEvent) {
+                    if (e.keyCode == KeyEvent.VK_ENTER) {
+                        if (canClosePopup) {
+                            popup.cancel()
+                            sendPredicateToServer(validationType, textField.text, predicate)
+                        }
+                    }
+                }
+            })
+            popup.showInBestPositionFor(e.dataContext)
         }
-        val popup = JBPopupFactory.getInstance().createPopupChooserBuilder(possiblePredicates)
-            .setItemChosenCallback { predicate ->
-                getReturnValue(validationType, predicate, e)
+
+        fun getPredicate(type: ValidationType) {
+            if (type == ValidationType.STRING) {
+                getReturnValue(type, "==")
+                return
             }
-            //.setItemSelectedCallback { println("ItemSelectedCallback was called!") }
-            .setResizable(false)
-            .setMovable(false)
-            .setTitle("Select Predicate")
-            .setSelectionMode(ListSelectionModel.SINGLE_SELECTION)
-            .setCloseOnEnter(true)
-            .createPopup()
-        popup.showInBestPositionFor(e.dataContext)
+            val predicatePopup = if (type == ValidationType.BOOL) {
+                createListPopup("Select Return Value", listOf("true", "false")) { chosenStr ->
+                    sendPredicateToServer(ValidationType.BOOL, chosenStr, "==")
+                }
+            } else {
+                createListPopup("Select Predicate", listOf("==", "<=", "=>", "<", ">")) { predicate ->
+                    getReturnValue(type, predicate)
+                }
+            }
+            predicatePopup.showInBestPositionFor(e.dataContext)
+        }
+
+        coroutinesScopeForGrpc.launch {
+            val type = client.getFunctionReturnType(buildFunctionRequestFromEvent(e)).validationType
+            getPredicate(type)
+        }
+
     }
 
     companion object {
@@ -176,7 +185,6 @@ class GenerateForPredicateAction: AnAction() {
 
         private fun intValidationFunc(validationType: ValidationType): (String) -> String?  {
             return fun(value: String): String? {
-                println("In In validation func ${validationTypeName[validationType]}")
                 return if ("""^-?(([1-9][0-9]*)|0)$""".toRegex().matches(value)) {
                     if (isIntegerInBounds(value, integerBounds[validationType]?.first, integerBounds[validationType]?.second)) {
                         null

@@ -11,7 +11,7 @@
     <depends>com.intellij.modules.clion</depends>
 
     <extensions defaultExtensionNs="com.intellij">
-        <applicationService serviceImplementation="com.github.vol0n.utbotcppclion.services.GenerateTestsSettings"/>
+        <applicationService serviceImplementation="com.github.vol0n.utbotcppclion.services.GeneratorSettings"/>
         <projectService serviceImplementation="com.github.vol0n.utbotcppclion.services.ProjectSettings"/>
         <projectConfigurable parentId="tools" instance="com.github.vol0n.utbotcppclion.services.ProjectConfigurable"
                              id="com.github.vol0n.utbotcppclion.services.ProjectConfigurable"
@@ -19,22 +19,24 @@
                              nonDefaultProject="true"/>
     </extensions>
 
+
     <actions>
+        <group id="com.github.vol0n.utbotcppclion.actions.UTBot" text="Static Grouped Actions" popup="true" >
+            <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+            <action id="com.github.vol0n.utbotcppclion.actions.GenerateForLineAction"
+                    class="com.github.vol0n.utbotcppclion.actions.GenerateForLineAction" text="UT Bot: Generate for Line"
+                    description="Generate tests for line uder carret">
+            </action>
+            <action id="com.github.vol0n.utbotcppclion.actions.GenerateForPredicateAction"
+                    class="com.github.vol0n.utbotcppclion.actions.GenerateForPredicateAction"
+                    text="UT Bot: Generate tests for predicate on this call"
+                    description="Generate tests for given predicate on call">
+            </action>
+        </group>
         <action id="com.github.vol0n.utbotcppclion.actions.GenerateForFileAction"
                 class="com.github.vol0n.utbotcppclion.actions.GenerateForFileAction" text="UTBot: Generate Tests for File"
                 description="Generates tests for file via grpc server">
             <add-to-group group-id="ProjectViewPopupMenuModifyGroup" anchor="first"/>
-        </action>
-        <action id="com.github.vol0n.utbotcppclion.actions.GenerateForLineAction"
-                class="com.github.vol0n.utbotcppclion.actions.GenerateForLineAction" text="UT Bot: Generate for Line"
-                description="Generate tests for line uder carret">
-            <add-to-group group-id="EditorPopupMenu" anchor="last"/>
-        </action>
-        <action id="com.github.vol0n.utbotcppclion.actions.GenerateForPredicateAction"
-                class="com.github.vol0n.utbotcppclion.actions.GenerateForPredicateAction"
-                text="UT Bot: Generate tests for predicate on this call"
-                description="Generate tests for given predicate on call">
-            <add-to-group group-id="EditorPopupMenu" anchor="last"/>
         </action>
     </actions>
 </idea-plugin>
