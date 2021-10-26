@@ -12,6 +12,7 @@ service TestsGenService {
     rpc GenerateFunctionTests(FunctionRequest) returns(stream TestsResponse) {}
     rpc GenerateClassTests(ClassRequest) returns(stream TestsResponse) {}
     rpc GenerateFolderTests(FolderRequest) returns(stream TestsResponse) {}
+    rpc GenerateSnippetTests(SnippetRequest) returns(stream TestsResponse) {}
 }
 
 message FolderRequest {
@@ -80,4 +81,10 @@ message PredicateRequest {
 
 message ClassRequest {
     LineRequest lineRequest = 1;
+}
+
+message SnippetRequest {
+    ProjectContext projectContext = 1;
+    SettingsContext settingsContext = 2;
+    string filePath = 3;
 }

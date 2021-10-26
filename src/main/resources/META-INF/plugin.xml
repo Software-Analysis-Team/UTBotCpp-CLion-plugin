@@ -24,7 +24,7 @@
         <group id="com.github.vol0n.utbotcppclion.actions.UTBot.editor" text="UTBot Actions" popup="true" >
             <add-to-group group-id="EditorPopupMenu" anchor="last"/>
             <action id="com.github.vol0n.utbotcppclion.actions.GenerateForLineAction"
-                    class="com.github.vol0n.utbotcppclion.actions.GenerateForLineAction" text="UT Bot: Generate for Line"
+                    class="com.github.vol0n.utbotcppclion.actions.GenerateForLineAction" text="Generate for Line"
                     description="Generate tests for line uder carret">
             </action>
             <action id="com.github.vol0n.utbotcppclion.actions.GenerateForPredicateAction"
@@ -33,17 +33,20 @@
                     description="Generate tests for given predicate on call">
             </action>
             <action id="com.github.vol0n.utbotcppclion.actions.GenerateForFunctionAction"
-                    class="com.github.vol0n.utbotcppclion.actions.GenerateForFunctionAction" text="UT Bot: Generate For Function"
+                    class="com.github.vol0n.utbotcppclion.actions.GenerateForFunctionAction" text="Generate For Function"
                     description="Generate unit tests for this function">
             </action>
             <action id="com.github.vol0n.utbotcppclion.actions.GenerateForClassAction"
-                    class="com.github.vol0n.utbotcppclion.actions.GenerateForClassAction" text="UT Bot: Generate For Class"
+                    class="com.github.vol0n.utbotcppclion.actions.GenerateForClassAction" text="Generate For Class"
                     description="Generate unit tests for this class"/>
+            <action id="com.github.vol0n.utbotcppclion.actions.GenerateForSnippetAction"
+                    class="com.github.vol0n.utbotcppclion.actions.GenerateForSnippetAction" text="Generate For Snippet"
+                    description="Generate unit tests for snippet"/>
         </group>
         <group id="com.github.vol0n.utbotcppclion.actions.UTBot.projectTree" text="UTBot Actions" popup="true" >
             <add-to-group group-id="ProjectViewPopupMenuModifyGroup" anchor="last"/>
             <action id="com.github.vol0n.utbotcppclion.actions.GenerateForFileAction"
-                    class="com.github.vol0n.utbotcppclion.actions.GenerateForFileAction" text="UTBot: Generate Tests for File"
+                    class="com.github.vol0n.utbotcppclion.actions.GenerateForFileAction" text="Generate Tests for File"
                     description="Generates tests for file via grpc server" />
             <action id="com.github.vol0n.utbotcppclion.actions.GenerateForFolderAction"
                     class="com.github.vol0n.utbotcppclion.actions.GenerateForFolderAction" text="Generate For Folder"

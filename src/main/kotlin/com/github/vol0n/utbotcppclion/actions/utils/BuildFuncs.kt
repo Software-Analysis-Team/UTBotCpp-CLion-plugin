@@ -110,3 +110,9 @@ fun buildFolderRequestFromEvent(e: AnActionEvent) = Testgen.FolderRequest.newBui
     .setFolderPath(relativize(e.project!!.basePath!!, e.getRequiredData(CommonDataKeys.VIRTUAL_FILE).path))
     .build()
 
+fun buildSnippetRequestFromEvent(e: AnActionEvent) = Testgen.SnippetRequest.newBuilder()
+    .setProjectContext(buildProjectContext(e.project!!.service(), e.project!!))
+    .setSettingsContext(buildSettingsContext(service()))
+    .setFilePath(relativize(e.project?.basePath!!, e.getRequiredData(CommonDataKeys.VIRTUAL_FILE).path))
+    .build()
+

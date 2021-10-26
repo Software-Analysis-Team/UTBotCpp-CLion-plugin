@@ -42,6 +42,10 @@ class GrpcClient(private val channel: ManagedChannel) : Closeable {
         request: Testgen.FolderRequest
     ): Flow<Testgen.TestsResponse> = stub.generateFolderTests(request)
 
+    fun generateForSnippet(
+        request: Testgen.SnippetRequest
+    ): Flow<Testgen.TestsResponse> = stub.generateSnippetTests(request)
+
     suspend fun getFunctionReturnType(
         request: Testgen.FunctionRequest
     ): Testgen.FunctionTypeResponse = withContext(Dispatchers.IO) { stub.getFunctionReturnType(request) }
