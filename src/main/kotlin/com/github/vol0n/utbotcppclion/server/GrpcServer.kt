@@ -104,6 +104,16 @@ class Server(private val port: Int) {
             return buildDummyTestsResponses(pathToGeneratedTestFile, pathToGeneratedTestFile)
         }
 
+        override fun generateSnippetTests(request: Testgen.SnippetRequest): Flow<Testgen.TestsResponse> {
+            val pathToGeneratedTestFile = Paths.get(
+                request.projectContext.projectPath,
+                request.projectContext.testDirPath,
+                request.filePath,
+            ).toString()
+
+            return buildDummyTestsResponses(pathToGeneratedTestFile, "Path to file: $pathToGeneratedTestFile")
+        }
+
         override fun generatePredicateTests(request: Testgen.PredicateRequest): Flow<Testgen.TestsResponse> {
             val projectPath = request.lineRequest.projectRequest.projectContext.projectPath
             val pathToGeneratedTestFile = Paths.get(
