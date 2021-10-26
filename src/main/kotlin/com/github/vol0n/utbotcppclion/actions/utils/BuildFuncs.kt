@@ -80,6 +80,8 @@ fun buildFunctionRequestFromEvent(e: AnActionEvent): Testgen.FunctionRequest {
         .build()
 }
 
+fun buildProjectRequestFromEvent(e: AnActionEvent): Testgen.ProjectRequest = buildProjectRequest(e.project!!, e.project!!.service())
+
 fun buildFileRequestFromEvent(e: AnActionEvent): Testgen.FileRequest {
     // this function is supposed to be called in actions' performAction(), so update() validated these properties
     val project: Project = e.project!!
@@ -98,3 +100,13 @@ fun buildPredicateInfo(predicate: String, returnValue: String, type: Util.Valida
         .setType(type)
         .build()
 }
+
+fun buildClassRequestFromEvent(e: AnActionEvent) = Testgen.ClassRequest.newBuilder().setLineRequest(
+    buildLineRequestFromEvent(e)
+).build()
+
+fun buildFolderRequestFromEvent(e: AnActionEvent) = Testgen.FolderRequest.newBuilder()
+    .setProjectRequest(buildProjectRequestFromEvent(e))
+    .setFolderPath(relativize(e.project!!.basePath!!, e.getRequiredData(CommonDataKeys.VIRTUAL_FILE).path))
+    .build()
+

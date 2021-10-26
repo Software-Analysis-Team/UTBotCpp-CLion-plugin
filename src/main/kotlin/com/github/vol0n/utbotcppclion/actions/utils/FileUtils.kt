@@ -1,5 +1,6 @@
 package com.github.vol0n.utbotcppclion.utils
 
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.vfs.LocalFileSystem
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
@@ -21,7 +22,9 @@ suspend fun Flow<Testgen.TestsResponse>.handleTestsResponse() {
                                 createNewFile()
                                 writeText(sourceCode.code)
 
-                                LocalFileSystem.getInstance()?.refreshAndFindFileByIoFile(this)
+                                ApplicationManager.getApplication().invokeLater {
+                                        LocalFileSystem.getInstance()?.refreshAndFindFileByIoFile(this)
+                                }
                         }
                 }
         }

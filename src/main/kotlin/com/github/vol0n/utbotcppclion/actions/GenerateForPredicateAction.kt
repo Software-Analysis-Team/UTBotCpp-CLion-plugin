@@ -2,15 +2,15 @@ package com.github.vol0n.utbotcppclion.actions
 
 import com.github.vol0n.utbotcppclion.actions.utils.client
 import com.github.vol0n.utbotcppclion.actions.utils.coroutinesScopeForGrpc
+import com.github.vol0n.utbotcppclion.actions.utils.getContainingFunFromAction
+import com.github.vol0n.utbotcppclion.ui.GeneratorSettingsDialog
 import com.github.vol0n.utbotcppclion.utils.handleTestsResponse
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
-import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.ui.ComponentValidator
 import com.intellij.openapi.ui.ValidationInfo
 import com.intellij.openapi.ui.popup.JBPopup
 import com.intellij.openapi.ui.popup.JBPopupFactory
-import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.ui.DocumentAdapter
 import com.intellij.ui.components.fields.ExtendableTextField
 import javax.swing.ListSelectionModel
@@ -21,19 +21,10 @@ import java.awt.event.KeyAdapter
 import java.awt.event.KeyEvent
 import java.math.BigInteger
 import java.util.function.Supplier
-import com.jetbrains.cidr.lang.psi.OCFunctionDefinition
 import kotlinx.coroutines.launch
 import testsgen.Testgen
 
 class GenerateForPredicateAction: AnAction() {
-
-    private fun getContainingFunFromAction(e: AnActionEvent): OCFunctionDefinition? {
-        val editor = e.getData(CommonDataKeys.EDITOR)
-        val psiFile = e.getData(CommonDataKeys.PSI_FILE)
-        val offset = editor?.caretModel?.offset ?: return null
-        val element = psiFile?.findElementAt(offset)
-        return PsiTreeUtil.getParentOfType(element, OCFunctionDefinition::class.java)
-    }
 
     override fun update(e: AnActionEvent) {
         val containingFun = getContainingFunFromAction(e)
@@ -59,8 +50,10 @@ class GenerateForPredicateAction: AnAction() {
                 .setLineRequest(buildLineRequestFromEvent(e))
                 .setPredicateInfo(predicateInfo)
                 .build()
-            coroutinesScopeForGrpc.launch {
-                client.generateForPredicate(predicateRequest).handleTestsResponse()
+            if (GeneratorSettingsDialog().showAndGet()) {
+                coroutinesScopeForGrpc.launch {
+                    client.generateForPredicate(predicateRequest).handleTestsResponse()
+                }
             }
         }
 
