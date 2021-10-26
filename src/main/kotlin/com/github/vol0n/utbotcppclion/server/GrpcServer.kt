@@ -39,13 +39,7 @@ class Server(private val port: Int) {
     }
 
     private class TestGenService : TestsGenServiceGrpcKt.TestsGenServiceCoroutineImplBase() {
-        override fun generateFileTests(request: Testgen.FileRequest): Flow<Testgen.TestsResponse> {
-            val projectPath = request.projectRequest.projectContext.projectPath
-            val pathToGeneratedTestFile = Paths.get(
-                projectPath,
-                request.projectRequest.projectContext.testDirPath,
-                request.filePath).toString()
-            val generatedCode = "Hello " + File("${projectPath}/${request.filePath}").readText()
+        fun buildDummyTestsResponses(pathToGeneratedTestFile: String, generatedCode: String): Flow<Testgen.TestsResponse> {
             return flow {
                 emit(
                     Testgen.TestsResponse.newBuilder().addTestSources(
@@ -57,37 +51,57 @@ class Server(private val port: Int) {
                 )
             }
         }
+        override fun generateFileTests(request: Testgen.FileRequest): Flow<Testgen.TestsResponse> {
+            val projectPath = request.projectRequest.projectContext.projectPath
+            val pathToGeneratedTestFile = Paths.get(
+                projectPath,
+                request.projectRequest.projectContext.testDirPath,
+                request.filePath).toString()
+            val generatedCode = "Hello " + File("${projectPath}/${request.filePath}").readText()
+            return buildDummyTestsResponses(pathToGeneratedTestFile, generatedCode)
+        }
 
         override fun generateLineTests(request: Testgen.LineRequest): Flow<Testgen.TestsResponse> {
             val projectPath = request.projectRequest.projectContext.projectPath
             val pathToGeneratedTestFile = Paths.get(
                 projectPath,
                 request.projectRequest.projectContext.testDirPath,
-                request.sourceInfo.filePath)
+                request.sourceInfo.filePath).toString()
             val line: String
             Files.lines(Paths.get(projectPath, request.sourceInfo.filePath)).use {
                 line = it.skip(request.sourceInfo.line.toLong()).findFirst().get()
             }
             val generatedCode = "The line with zero based index ${request.sourceInfo.line}:\n$line"
-            return flow {
-                emit(
-                    Testgen.TestsResponse.newBuilder().addTestSources(
-                        Util.SourceCode.newBuilder()
-                            .setFilePath(pathToGeneratedTestFile.toString())
-                            .setCode(generatedCode)
-                            .build()
-                    ).build()
-                )
-            }
+            return buildDummyTestsResponses(pathToGeneratedTestFile, generatedCode)
         }
 
-        override suspend fun getFunctionReturnType(request: Testgen.FunctionRequest): Testgen.FunctionTypeResponse {
-            println("Before taking random type")
-            val t = Testgen.FunctionTypeResponse.newBuilder().setValidationType(
+        override suspend fun getFunctionReturnType(request: Testgen.FunctionRequest): Testgen.FunctionTypeResponse =
+            Testgen.FunctionTypeResponse.newBuilder().setValidationType(
                 Util.ValidationType.values().random()
             ).build()
-            println("After taking random type")
-            return t
+
+        override fun generateFunctionTests(request: Testgen.FunctionRequest): Flow<Testgen.TestsResponse> {
+            val pathToGeneratedTestFile = Paths.get(
+                request.lineRequest.projectRequest.projectContext.projectPath,
+                request.lineRequest.projectRequest.projectContext.testDirPath,
+                request.lineRequest.sourceInfo.filePath
+            ).toString()
+            val generatedCode = "This is dummy response to test that everything works. \n path to test file: $pathToGeneratedTestFile"
+            return buildDummyTestsResponses(pathToGeneratedTestFile, generatedCode)
+        }
+
+        override fun generateClassTests(request: Testgen.ClassRequest): Flow<Testgen.TestsResponse> {
+            return generateLineTests(request.lineRequest)
+        }
+
+        override fun generateFolderTests(request: Testgen.FolderRequest): Flow<Testgen.TestsResponse> {
+            val pathToGeneratedTestFile = Paths.get(
+                request.projectRequest.projectContext.projectPath,
+                request.projectRequest.projectContext.testDirPath,
+                request.folderPath,
+                "folder_tests_for_${Paths.get(request.folderPath).last()}.cpp",
+            ).toString()
+            return buildDummyTestsResponses(pathToGeneratedTestFile, pathToGeneratedTestFile)
         }
 
         override fun generatePredicateTests(request: Testgen.PredicateRequest): Flow<Testgen.TestsResponse> {
@@ -95,7 +109,7 @@ class Server(private val port: Int) {
             val pathToGeneratedTestFile = Paths.get(
                 projectPath,
                 request.lineRequest.projectRequest.projectContext.testDirPath,
-                request.lineRequest.sourceInfo.filePath)
+                request.lineRequest.sourceInfo.filePath).toString()
             val line: String
             Files.lines(Paths.get(projectPath, request.lineRequest.sourceInfo.filePath)).use {
                 line = it.skip(request.lineRequest.sourceInfo.line.toLong()).findFirst().get()
@@ -106,16 +120,7 @@ class Server(private val port: Int) {
                     "return value: ${request.predicateInfo.returnValue} " +
                     "type: ${request.predicateInfo.type}"
 
-            return flow {
-                emit(
-                    Testgen.TestsResponse.newBuilder().addTestSources(
-                        Util.SourceCode.newBuilder()
-                            .setFilePath(pathToGeneratedTestFile.toString())
-                            .setCode(generatedCode)
-                            .build()
-                    ).build()
-                )
-            }
+            return buildDummyTestsResponses(pathToGeneratedTestFile, generatedCode)
         }
     }
 }

@@ -1,20 +1,11 @@
 package com.github.vol0n.utbotcppclion.actions
 
 import com.github.vol0n.utbotcppclion.actions.utils.client
-import com.github.vol0n.utbotcppclion.actions.utils.coroutinesScopeForGrpc
-import com.github.vol0n.utbotcppclion.utils.handleTestsResponse
-import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 
-class GenerateForLineAction: AnAction() {
-    override fun actionPerformed(e: AnActionEvent) {
-        coroutinesScopeForGrpc.launch(Dispatchers.IO) {
-            client.generateForLine(buildLineRequestFromEvent(e)).handleTestsResponse()
-        }
-    }
+class GenerateForLineAction: UTBotTestsResponseAction() {
+    override val funToGetTestResponse = {e: AnActionEvent -> client.generateForLine(buildLineRequestFromEvent(e)) }
 
     override fun update(e: AnActionEvent) {
         super.update(e)

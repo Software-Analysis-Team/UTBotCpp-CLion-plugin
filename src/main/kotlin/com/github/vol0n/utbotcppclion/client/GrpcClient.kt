@@ -30,6 +30,17 @@ class GrpcClient(private val channel: ManagedChannel) : Closeable {
         request: Testgen.PredicateRequest
     ): Flow<Testgen.TestsResponse> = stub.generatePredicateTests(request)
 
+    fun generateForFunction(
+        request: Testgen.FunctionRequest
+    ): Flow<Testgen.TestsResponse> = stub.generateFunctionTests(request)
+
+    fun generateForClass(
+        request: Testgen.ClassRequest
+    ): Flow<Testgen.TestsResponse> = stub.generateClassTests(request)
+
+    fun generateForFolder(
+        request: Testgen.FolderRequest
+    ): Flow<Testgen.TestsResponse> = stub.generateFolderTests(request)
 
     suspend fun getFunctionReturnType(
         request: Testgen.FunctionRequest
