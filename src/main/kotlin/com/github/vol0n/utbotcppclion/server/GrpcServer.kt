@@ -51,6 +51,7 @@ class Server(private val port: Int) {
                 )
             }
         }
+
         override fun generateFileTests(request: Testgen.FileRequest): Flow<Testgen.TestsResponse> {
             val projectPath = request.projectRequest.projectContext.projectPath
             val pathToGeneratedTestFile = Paths.get(

@@ -9,6 +9,7 @@ class GenerateForFileAction: UTBotTestsResponseAction() {
         client.generateForFile(buildFileRequestFromEvent(e))
     }
 
+
     // action is available only if the selected file ends in .c or .cpp
     override fun update(e: AnActionEvent) {
         val file = e.getData(CommonDataKeys.PSI_FILE)
