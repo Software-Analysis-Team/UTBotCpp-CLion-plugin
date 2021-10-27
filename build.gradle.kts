@@ -8,12 +8,10 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 fun properties(key: String) = project.findProperty(key).toString()
 
-val coroutinesVersion by extra("1.5.2")
+val coroutinesVersion by extra("1.5.2-native-mt")
 val protobufVersion by extra("3.18.0")
 val grpcVersion by extra("1.40.1")
 val grpcKotlinVersion by extra("1.1.0")
-val platformType: String by project
-val platformVersion: String by project
 
 buildscript {
     val protobufPlugInVersion by extra("0.8.17")
@@ -55,7 +53,6 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutinesVersion")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:$coroutinesVersion")
 
     // grpc and protobuf
     implementation("com.google.protobuf:protobuf-java:$protobufVersion")
@@ -114,8 +111,8 @@ repositories {
 intellij {
     pluginName.set(properties("pluginName"))
     // use CLion version 2021.2.2
-    version.set(platformVersion)
-    type.set(platformType)
+    version.set("2021.2.2")
+    type.set("CL")
     downloadSources.set(false)
     updateSinceUntilBuild.set(true)
 
@@ -150,7 +147,7 @@ tasks {
         }
         withType<KotlinCompile> {
             kotlinOptions.jvmTarget = it
-            kotlinOptions.freeCompilerArgs = listOf("-Xjsr305=strict","-Xopt-in=kotlin.RequiresOptIn")
+            kotlinOptions.freeCompilerArgs = listOf("-Xjsr305=strict")
             kotlinOptions.jvmTarget = "11"
         }
     }

@@ -3,9 +3,7 @@ package com.github.vol0n.utbotcppclion.client
 import com.charleskorn.kaml.Yaml
 import io.grpc.ManagedChannel
 import io.grpc.ManagedChannelBuilder
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
@@ -21,38 +19,6 @@ class GrpcClient(private val channel: ManagedChannel) : Closeable {
     fun generateForFile(
         request: Testgen.FileRequest
     ): Flow<Testgen.TestsResponse> = stub.generateFileTests(request)
-
-    fun generateForLine(
-        request: Testgen.LineRequest
-    ): Flow<Testgen.TestsResponse> = stub.generateLineTests(request)
-
-    fun generateForPredicate(
-        request: Testgen.PredicateRequest
-    ): Flow<Testgen.TestsResponse> = stub.generatePredicateTests(request)
-
-    fun generateForFunction(
-        request: Testgen.FunctionRequest
-    ): Flow<Testgen.TestsResponse> = stub.generateFunctionTests(request)
-
-    fun generateForClass(
-        request: Testgen.ClassRequest
-    ): Flow<Testgen.TestsResponse> = stub.generateClassTests(request)
-
-    fun generateForFolder(
-        request: Testgen.FolderRequest
-    ): Flow<Testgen.TestsResponse> = stub.generateFolderTests(request)
-
-    fun generateForSnippet(
-        request: Testgen.SnippetRequest
-    ): Flow<Testgen.TestsResponse> = stub.generateSnippetTests(request)
-
-    fun generateForAssertion(
-        request: Testgen.AssertionRequest
-    ): Flow<Testgen.TestsResponse> = stub.generateAssertionFailTests(request)
-
-    suspend fun getFunctionReturnType(
-        request: Testgen.FunctionRequest
-    ): Testgen.FunctionTypeResponse = withContext(Dispatchers.IO) { stub.getFunctionReturnType(request) }
 
     override fun close() {
         channel.shutdown().awaitTermination(5, TimeUnit.SECONDS)

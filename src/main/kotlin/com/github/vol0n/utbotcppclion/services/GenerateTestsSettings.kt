@@ -5,30 +5,24 @@ import com.intellij.openapi.components.PersistentStateComponent
 import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
 import com.intellij.util.xmlb.XmlSerializerUtil
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.swing.Swing
 
 @State(name = "Generator settings", storages = [Storage(value = "test_generator_settings.xml")])
-data class GeneratorSettings(
+data class GenerateTestsSettings(
     var generateForStaticFunctions: Boolean = true,
     var useStubs: Boolean = true,
     var useDeterministicSearcher: Boolean = true,
     var verbose: Boolean = false,
     var timeoutPerFunction: Int = 5,
     var timeoutPerTest: Int = 20
-) : PersistentStateComponent<GeneratorSettings> {
+) : PersistentStateComponent<GenerateTestsSettings> {
     @com.intellij.util.xmlb.annotations.Transient
     val client = GrpcStarter.startClient()
 
-    @com.intellij.util.xmlb.annotations.Transient
-    val grpcCoroutineScope = CoroutineScope(Dispatchers.Swing)
-
-    override fun getState(): GeneratorSettings {
+    override fun getState(): GenerateTestsSettings {
         return this
     }
 
-    override fun loadState(p0: GeneratorSettings) {
+    override fun loadState(p0: GenerateTestsSettings) {
         XmlSerializerUtil.copyBean(state, this);
     }
 }
