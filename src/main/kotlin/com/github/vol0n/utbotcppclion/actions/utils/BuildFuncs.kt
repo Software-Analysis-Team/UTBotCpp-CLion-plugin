@@ -116,3 +116,6 @@ fun buildSnippetRequestFromEvent(e: AnActionEvent) = Testgen.SnippetRequest.newB
     .setFilePath(relativize(e.project?.basePath!!, e.getRequiredData(CommonDataKeys.VIRTUAL_FILE).path))
     .build()
 
+fun buildAssertionRequestFromEvent(e: AnActionEvent) = Testgen.AssertionRequest.newBuilder()
+    .setLineRequest(buildLineRequestFromEvent(e))
+    .build()
