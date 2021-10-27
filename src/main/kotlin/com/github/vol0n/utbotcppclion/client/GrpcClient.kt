@@ -46,6 +46,10 @@ class GrpcClient(private val channel: ManagedChannel) : Closeable {
         request: Testgen.SnippetRequest
     ): Flow<Testgen.TestsResponse> = stub.generateSnippetTests(request)
 
+    fun generateForAssertion(
+        request: Testgen.AssertionRequest
+    ): Flow<Testgen.TestsResponse> = stub.generateAssertionFailTests(request)
+
     suspend fun getFunctionReturnType(
         request: Testgen.FunctionRequest
     ): Testgen.FunctionTypeResponse = withContext(Dispatchers.IO) { stub.getFunctionReturnType(request) }

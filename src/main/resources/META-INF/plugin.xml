@@ -42,6 +42,10 @@
             <action id="com.github.vol0n.utbotcppclion.actions.GenerateForSnippetAction"
                     class="com.github.vol0n.utbotcppclion.actions.GenerateForSnippetAction" text="Generate For Snippet"
                     description="Generate unit tests for snippet"/>
+            <action id="com.github.vol0n.utbotcppclion.actions.GenerateForAssertionAction"
+                    class="com.github.vol0n.utbotcppclion.actions.GenerateForAssertionAction"
+                    text="Generate Tests Failing Assertion"
+                    description="Generate unit tests that fail assertion on this line"/>
         </group>
         <group id="com.github.vol0n.utbotcppclion.actions.UTBot.projectTree" text="UTBot Actions" popup="true" >
             <add-to-group group-id="ProjectViewPopupMenuModifyGroup" anchor="last"/>

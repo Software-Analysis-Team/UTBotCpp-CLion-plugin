@@ -10,6 +10,6 @@ class GenerateForClassAction: UTBotTestsResponseAction() {
     }
 
     override fun update(e: AnActionEvent) {
-        e.presentation.isEnabled = (getContainingClassFromAction(e) != null)
+        e.presentation.isEnabledAndVisible = (getContainingClassFromAction(e) != null)
     }
 }
