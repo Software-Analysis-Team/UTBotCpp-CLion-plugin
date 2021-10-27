@@ -6,6 +6,19 @@ import "util.proto";
 
 service TestsGenService {
     rpc GenerateFileTests(FileRequest) returns(stream TestsResponse) {}
+    rpc GenerateLineTests(LineRequest) returns(stream TestsResponse) {}
+    rpc GetFunctionReturnType(FunctionRequest) returns(FunctionTypeResponse) {}
+    rpc GeneratePredicateTests(PredicateRequest) returns(stream TestsResponse) {}
+    rpc GenerateFunctionTests(FunctionRequest) returns(stream TestsResponse) {}
+    rpc GenerateClassTests(ClassRequest) returns(stream TestsResponse) {}
+    rpc GenerateFolderTests(FolderRequest) returns(stream TestsResponse) {}
+    rpc GenerateSnippetTests(SnippetRequest) returns(stream TestsResponse) {}
+    rpc GenerateAssertionFailTests(AssertionRequest) returns(stream TestsResponse) {}
+}
+
+message FolderRequest {
+    ProjectRequest projectRequest = 1;
+    string folderPath = 2;
 }
 
 message ProjectContext {
@@ -38,6 +51,19 @@ message FileRequest {
     string filePath = 2;
 }
 
+message LineRequest {
+    ProjectRequest projectRequest = 1;
+    SourceInfo sourceInfo = 2;
+}
+
+message FunctionRequest {
+    LineRequest lineRequest = 1;
+}
+
+message FunctionTypeResponse {
+    ValidationType validationType = 1;
+}
+
 message StubsResponse {
     repeated SourceCode stubSources = 1;
     Progress progress = 2;
@@ -47,4 +73,23 @@ message TestsResponse {
     repeated SourceCode testSources = 1;
     StubsResponse stubs = 2;
     Progress progress = 3;
+}
+
+message PredicateRequest {
+    LineRequest lineRequest = 1;
+    PredicateInfo predicateInfo = 2;
+}
+
+message ClassRequest {
+    LineRequest lineRequest = 1;
+}
+
+message SnippetRequest {
+    ProjectContext projectContext = 1;
+    SettingsContext settingsContext = 2;
+    string filePath = 3;
+}
+
+message AssertionRequest {
+    LineRequest lineRequest = 1;
 }
