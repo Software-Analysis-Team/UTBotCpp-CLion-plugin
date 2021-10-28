@@ -54,7 +54,7 @@ class ProjectConfigurable(private val targetProject: Project): BoundConfigurable
                 }
             }
             row {
-                // checkBox("Synchronize code", synchronizeCode)
+                checkBox("Synchronize code", synchronizeCode)
             }
             row {
                 label("Source paths: ")
