@@ -4,9 +4,9 @@ import com.github.vol0n.utbotcppclion.actions.utils.client
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
 
-class GenerateForSnippetAction: UTBotTestsResponseAction() {
+class GenerateForSnippetAction : UTBotTestsResponseAction() {
     override val funToGetTestResponse = { e: AnActionEvent ->
-        client.generateForSnippet(buildSnippetRequestFromEvent(e))
+        client.generateForSnippet(getSnippetRequestMessage(e))
     }
 
     override fun update(e: AnActionEvent) {

@@ -8,6 +8,7 @@ import javax.swing.JComponent
 
 class GeneratorSettingsDialog : DialogWrapper(true) {
     val applicationService = service<GeneratorSettings>()
+
     init {
         title = "Select Options for Generating Tests";
         init();

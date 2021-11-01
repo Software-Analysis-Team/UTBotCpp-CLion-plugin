@@ -4,9 +4,9 @@ import com.github.vol0n.utbotcppclion.actions.utils.client
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
 
-class GenerateForFolderAction: UTBotTestsResponseAction() {
+class GenerateForFolderAction : UTBotTestsResponseAction() {
     override val funToGetTestResponse = { e: AnActionEvent ->
-        client.generateForFolder(buildFolderRequestFromEvent(e))
+        client.generateForFolder(getFolderRequestMessage(e))
     }
 
     override fun update(e: AnActionEvent) {

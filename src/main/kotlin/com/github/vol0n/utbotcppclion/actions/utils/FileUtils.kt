@@ -9,23 +9,23 @@ import java.io.File
 import java.nio.file.Paths
 
 fun relativize(from: String, to: String): String {
-        val toPath = Paths.get(to)
-        val fromPath = Paths.get(from)
-        return fromPath.relativize(toPath).toString()
+    val toPath = Paths.get(to)
+    val fromPath = Paths.get(from)
+    return fromPath.relativize(toPath).toString()
 }
 
 suspend fun Flow<Testgen.TestsResponse>.handleTestsResponse() {
-        collect { testResponse ->
-                testResponse.testSourcesList.map { sourceCode ->
-                        with(File(sourceCode.filePath)) {
-                                parentFile?.mkdirs()
-                                createNewFile()
-                                writeText(sourceCode.code)
+    collect { testResponse ->
+        testResponse.testSourcesList.map { sourceCode ->
+            with(File(sourceCode.filePath)) {
+                parentFile?.mkdirs()
+                createNewFile()
+                writeText(sourceCode.code)
 
-                                ApplicationManager.getApplication().invokeLater {
-                                        LocalFileSystem.getInstance()?.refreshAndFindFileByIoFile(this)
-                                }
-                        }
+                ApplicationManager.getApplication().invokeLater {
+                    LocalFileSystem.getInstance()?.refreshAndFindFileByIoFile(this)
                 }
+            }
         }
+    }
 }

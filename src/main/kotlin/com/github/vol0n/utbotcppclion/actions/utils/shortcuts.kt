@@ -8,4 +8,3 @@ val client
 
 val coroutinesScopeForGrpc
     get() = service<GeneratorSettings>().grpcCoroutineScope
-

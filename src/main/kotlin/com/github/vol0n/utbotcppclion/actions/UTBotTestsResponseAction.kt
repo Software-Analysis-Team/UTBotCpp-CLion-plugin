@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import testsgen.Testgen
 
-abstract class UTBotTestsResponseAction: AnAction() {
+abstract class UTBotTestsResponseAction : AnAction() {
     abstract val funToGetTestResponse: (AnActionEvent) -> Flow<Testgen.TestsResponse>
     override fun actionPerformed(e: AnActionEvent) {
         if (GeneratorSettingsDialog().showAndGet()) {

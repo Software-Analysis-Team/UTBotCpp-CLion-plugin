@@ -15,13 +15,13 @@
         <projectService serviceImplementation="com.github.vol0n.utbotcppclion.services.ProjectSettings"/>
         <projectConfigurable parentId="tools" instance="com.github.vol0n.utbotcppclion.services.ProjectConfigurable"
                              id="com.github.vol0n.utbotcppclion.services.ProjectConfigurable"
-                             displayName="UT BOT: Project Settings for Generating Tests"
+                             displayName="UTBot Settings"
                              nonDefaultProject="true"/>
     </extensions>
 
 
     <actions>
-        <group id="com.github.vol0n.utbotcppclion.actions.UTBot.editor" text="UTBot Actions" popup="true" >
+        <group id="com.github.vol0n.utbotcppclion.actions.UTBot.editor" text="UTBot Actions" popup="true">
             <add-to-group group-id="EditorPopupMenu" anchor="last"/>
             <action id="com.github.vol0n.utbotcppclion.actions.GenerateForLineAction"
                     class="com.github.vol0n.utbotcppclion.actions.GenerateForLineAction" text="Generate for Line"
@@ -29,11 +29,12 @@
             </action>
             <action id="com.github.vol0n.utbotcppclion.actions.GenerateForPredicateAction"
                     class="com.github.vol0n.utbotcppclion.actions.GenerateForPredicateAction"
-                    text="UT Bot: Generate Tests for Predicate on This Call"
+                    text="Generate For Predicate"
                     description="Generate tests for given predicate on call">
             </action>
             <action id="com.github.vol0n.utbotcppclion.actions.GenerateForFunctionAction"
-                    class="com.github.vol0n.utbotcppclion.actions.GenerateForFunctionAction" text="Generate For Function"
+                    class="com.github.vol0n.utbotcppclion.actions.GenerateForFunctionAction"
+                    text="Generate For Function"
                     description="Generate unit tests for this function">
             </action>
             <action id="com.github.vol0n.utbotcppclion.actions.GenerateForClassAction"
@@ -47,14 +48,14 @@
                     text="Generate Tests Failing Assertion"
                     description="Generate unit tests that fail assertion on this line"/>
         </group>
-        <group id="com.github.vol0n.utbotcppclion.actions.UTBot.projectTree" text="UTBot Actions" popup="true" >
+        <group id="com.github.vol0n.utbotcppclion.actions.UTBot.projectTree" text="UTBot Actions" popup="true">
             <add-to-group group-id="ProjectViewPopupMenuModifyGroup" anchor="last"/>
             <action id="com.github.vol0n.utbotcppclion.actions.GenerateForFileAction"
                     class="com.github.vol0n.utbotcppclion.actions.GenerateForFileAction" text="Generate Tests for File"
-                    description="Generates tests for file via grpc server" />
+                    description="Generates tests for file via grpc server"/>
             <action id="com.github.vol0n.utbotcppclion.actions.GenerateForFolderAction"
                     class="com.github.vol0n.utbotcppclion.actions.GenerateForFolderAction" text="Generate For Folder"
-                    description="Generate unit tests for this folder" />
+                    description="Generate unit tests for this folder"/>
         </group>
     </actions>
 </idea-plugin>

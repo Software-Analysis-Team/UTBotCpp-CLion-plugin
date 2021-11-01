@@ -2,7 +2,7 @@ package com.github.vol0n.utbotcppclion.actions
 
 import com.github.vol0n.utbotcppclion.actions.utils.client
 import com.github.vol0n.utbotcppclion.actions.utils.coroutinesScopeForGrpc
-import com.github.vol0n.utbotcppclion.actions.utils.getContainingFunFromAction
+import com.github.vol0n.utbotcppclion.actions.utils.getContainingFunction
 import com.github.vol0n.utbotcppclion.ui.GeneratorSettingsDialog
 import com.github.vol0n.utbotcppclion.utils.handleTestsResponse
 import com.intellij.openapi.actionSystem.AnAction
@@ -24,10 +24,10 @@ import java.util.function.Supplier
 import kotlinx.coroutines.launch
 import testsgen.Testgen
 
-class GenerateForPredicateAction: AnAction() {
+class GenerateForPredicateAction : AnAction() {
 
     override fun update(e: AnActionEvent) {
-        val containingFun = getContainingFunFromAction(e)
+        val containingFun = getContainingFunction(e)
         e.presentation.isEnabledAndVisible = (containingFun != null)
     }
 
@@ -45,11 +45,7 @@ class GenerateForPredicateAction: AnAction() {
     override fun actionPerformed(e: AnActionEvent) {
 
         fun sendPredicateToServer(validationType: ValidationType, returnValue: String, predicate: String) {
-            val predicateInfo = buildPredicateInfo(predicate, returnValue, validationType)
-            val predicateRequest = Testgen.PredicateRequest.newBuilder()
-                .setLineRequest(buildLineRequestFromEvent(e))
-                .setPredicateInfo(predicateInfo)
-                .build()
+            val predicateRequest = getPredicateRequestMessage(validationType, returnValue, predicate, e)
             if (GeneratorSettingsDialog().showAndGet()) {
                 coroutinesScopeForGrpc.launch {
                     client.generateForPredicate(predicateRequest).handleTestsResponse()
@@ -57,7 +53,11 @@ class GenerateForPredicateAction: AnAction() {
             }
         }
 
-        fun getReturnValue(validationType: ValidationType, predicate: String) {
+        /**
+         * Shows user a popup to enter return value, if user enters the acceptable value, then
+         * it triggers [sendPredicateToServer].
+         */
+        fun askForReturnValue(validationType: ValidationType, predicate: String) {
             val textField = ExtendableTextField()
             textField.minimumSize = Dimension(100, textField.width)
             textField.text = defaultReturnValues[validationType]
@@ -101,9 +101,13 @@ class GenerateForPredicateAction: AnAction() {
             popup.showInBestPositionFor(e.dataContext)
         }
 
-        fun getPredicate(type: ValidationType) {
+        /**
+         * Shows user a popup to select predicate if needed, if user selects, it triggers [askForReturnValue].
+         * User can ignore the popup, then nothing happens.
+         */
+        fun askForPredicate(type: ValidationType) {
             if (type == ValidationType.STRING) {
-                getReturnValue(type, "==")
+                askForReturnValue(type, "==")
                 return
             }
             val predicatePopup = if (type == ValidationType.BOOL) {
@@ -112,15 +116,15 @@ class GenerateForPredicateAction: AnAction() {
                 }
             } else {
                 createListPopup("Select Predicate", listOf("==", "<=", "=>", "<", ">")) { predicate ->
-                    getReturnValue(type, predicate)
+                    askForReturnValue(type, predicate)
                 }
             }
             predicatePopup.showInBestPositionFor(e.dataContext)
         }
 
         coroutinesScopeForGrpc.launch {
-            val type = client.getFunctionReturnType(buildFunctionRequestFromEvent(e)).validationType
-            getPredicate(type)
+            val type = client.getFunctionReturnType(getFunctionRequestMessage(e)).validationType
+            askForPredicate(type)
         }
 
     }
@@ -137,13 +141,13 @@ class GenerateForPredicateAction: AnAction() {
             ValidationType.UINT64_T to "0",
             ValidationType.CHAR to "a",
             ValidationType.FLOAT to "1.0",
-            ValidationType.STRING to "default str",
+            ValidationType.STRING to "default",
         )
 
         private fun isIntegerInBounds(value: String, low: BigInteger?, high: BigInteger?): Boolean {
-           if (low == null || high == null) {
-               return false
-           }
+            if (low == null || high == null) {
+                return false
+            }
             return value.toBigInteger() in low..high
         }
 
@@ -151,7 +155,7 @@ class GenerateForPredicateAction: AnAction() {
             if (!signed) {
                 return Pair((0).toBigInteger(), (2).toBigInteger().pow(size).dec())
             }
-            return Pair((2).toBigInteger().pow(size-1).unaryMinus(), (2).toBigInteger().pow(size-1).dec())
+            return Pair((2).toBigInteger().pow(size - 1).unaryMinus(), (2).toBigInteger().pow(size - 1).dec())
         }
 
         private val validationTypeName = mapOf(
@@ -176,10 +180,15 @@ class GenerateForPredicateAction: AnAction() {
             ValidationType.UINT64_T to intBoundsBySize(64, true)
         )
 
-        private fun intValidationFunc(validationType: ValidationType): (String) -> String?  {
+        private fun intValidationFunc(validationType: ValidationType): (String) -> String? {
             return fun(value: String): String? {
                 return if ("""^-?(([1-9][0-9]*)|0)$""".toRegex().matches(value)) {
-                    if (isIntegerInBounds(value, integerBounds[validationType]?.first, integerBounds[validationType]?.second)) {
+                    if (isIntegerInBounds(
+                            value,
+                            integerBounds[validationType]?.first,
+                            integerBounds[validationType]?.second
+                        )
+                    ) {
                         null
                     } else {
                         "Value does not fit into C  ${validationTypeName[validationType]} type"
@@ -187,6 +196,51 @@ class GenerateForPredicateAction: AnAction() {
                 } else {
                     "Value is not an integer"
                 }
+            }
+        }
+
+        private fun validateChar(value: String): String? {
+            if (value.length == 1) {
+                return null
+            } else {
+                val escapeSequences = listOf(
+                    "\\\'",
+                    "\"",
+                    "\\?",
+                    "\\\\",
+                    "\\a",
+                    "\\b",
+                    "\\f",
+                    "\\n",
+                    "\\r",
+                    "\\t",
+                    "\\v"
+                )
+                return if (!escapeSequences.contains(value)) {
+                    "Value is not a character"
+                } else {
+                    null
+                }
+            }
+        }
+
+        private fun validateFloat(value: String): String? {
+            return if ("""^-?([1-9][0-9]*)[.]([0-9]*)$""".toRegex().matches(value)) {
+                if (value.length < 15) {
+                    null
+                } else {
+                    "Value does not fit into C float type."
+                }
+            } else {
+                "Value is not floating-point"
+            }
+        }
+
+        private fun validateString(value: String): String? {
+            return if (value.length > 32) {
+                "String is too long"
+            } else {
+                null
             }
         }
 
@@ -199,48 +253,9 @@ class GenerateForPredicateAction: AnAction() {
             ValidationType.UINT16_T to intValidationFunc(ValidationType.UINT16_T),
             ValidationType.UINT32_T to intValidationFunc(ValidationType.UINT32_T),
             ValidationType.UINT64_T to intValidationFunc(ValidationType.UINT64_T),
-            ValidationType.CHAR to fun(value: String): String? {
-            if (value.length == 1) {
-                return null
-            } else {
-                val escapeSequences = listOf(
-                        "\\\'",
-                        "\"",
-                        "\\?",
-                        "\\\\",
-                        "\\a",
-                        "\\b",
-                        "\\f",
-                        "\\n",
-                        "\\r",
-                        "\\t",
-                        "\\v"
-                )
-                return if (!escapeSequences.contains(value)) {
-                    "Value is not a character"
-                } else {
-                    null
-                }
-            }
-        },
-        ValidationType.FLOAT to fun(value: String): String? {
-            return if ("""^-?([1-9][0-9]*)[.]([0-9]*)$""".toRegex().matches(value)) {
-                if (value.length < 15) {
-                    null
-                } else {
-                    "Value does not fit into C float type."
-                }
-            } else {
-                "Value is not floating-point"
-            }
-        },
-        ValidationType.STRING to fun(value: String): String? {
-            return if (value.length > 32) {
-                "String is too long"
-            } else {
-                null
-            }
-        })
+            ValidationType.CHAR to this::validateChar,
+            ValidationType.FLOAT to this::validateFloat,
+            ValidationType.STRING to this::validateString,
+        )
     }
 }
-

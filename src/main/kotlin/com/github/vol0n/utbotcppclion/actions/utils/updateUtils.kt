@@ -6,7 +6,7 @@ import com.intellij.psi.util.PsiTreeUtil
 import com.jetbrains.cidr.lang.psi.OCFunctionDefinition
 import com.jetbrains.cidr.lang.psi.OCStruct
 
-fun getContainingFunFromAction(e: AnActionEvent): OCFunctionDefinition? {
+fun getContainingFunction(e: AnActionEvent): OCFunctionDefinition? {
     val editor = e.getData(CommonDataKeys.EDITOR)
     val psiFile = e.getData(CommonDataKeys.PSI_FILE)
     val offset = editor?.caretModel?.offset ?: return null
@@ -14,7 +14,7 @@ fun getContainingFunFromAction(e: AnActionEvent): OCFunctionDefinition? {
     return PsiTreeUtil.getParentOfType(element, OCFunctionDefinition::class.java)
 }
 
-fun getContainingClassFromAction(e: AnActionEvent): OCStruct? {
+fun getContainingClass(e: AnActionEvent): OCStruct? {
     val editor = e.getData(CommonDataKeys.EDITOR)
     val psiFile = e.getData(CommonDataKeys.PSI_FILE)
     val offset = editor?.caretModel?.offset ?: return null
