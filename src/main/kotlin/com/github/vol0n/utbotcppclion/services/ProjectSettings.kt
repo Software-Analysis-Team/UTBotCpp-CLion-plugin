@@ -1,10 +1,14 @@
 package com.github.vol0n.utbotcppclion.services
 
+import com.github.vol0n.utbotcppclion.actions.utils.notifyError
 import com.github.vol0n.utbotcppclion.utils.relativize
 import com.intellij.openapi.components.PersistentStateComponent
 import com.intellij.openapi.components.State
+import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.intellij.util.xmlb.XmlSerializerUtil
+import com.jetbrains.cidr.cpp.execution.CMakeAppRunConfiguration
+import java.nio.file.Paths
 
 /**
  * ProjectSettings is a service used to get project related info
@@ -15,36 +19,80 @@ import com.intellij.util.xmlb.XmlSerializerUtil
 @State(name = "utBotProjectSettings")
 data class ProjectSettings(
     @com.intellij.util.xmlb.annotations.Transient
-    val project: Project,
-) : PersistentStateComponent<ProjectSettings.GrpcProjectSettings> {
+    val project: Project? = null,
+) : PersistentStateComponent<ProjectSettings> {
+    val logger = Logger.getInstance(this::class.java)
 
-    private val projectState = GrpcProjectSettings()
+    // the null value indicates that plugin was launched for the first time,
+    // and the plugin should try to get these paths from ide
+    var targetPath: String? = null
+    var buildDirPath: String? = null
+    var testDirPath: String? = null
+    var synchronizeCode: Boolean = false
+    var sourcePaths: List<String> = emptyList()
 
-    override fun getState(): GrpcProjectSettings {
-        return projectState
+    init {
+        logger.info("ProjectSettings instance's constructor is called")
+        // project is null when ide creates ProjectSettings instance from serialized xml file
+        // project is not null when plugin is running in user's ide, so we can access ide for paths
+        if (project != null)
+            checkForUninitializedDataAndInit()
     }
 
-    /**
-     * Stores project paths for generating tests.
-     * @param targetPath - path to executable which launches tests.
-     * @param buildDirPath - path to build directory.
-     * @param testDirPath - path to directory for storing test files.
-     */
-    data class GrpcProjectSettings(
-        var targetPath: String = "unknown",
-        var buildDirPath: String = "build",
-        var testDirPath: String = "tests",
-        var synchronizeCode: Boolean = false,
-        var sourcePaths: List<String> = emptyList(),
-    )
+    fun getRelativeTargetPath() = targetPath.getRelativeToProjectPath()
+    fun getRelativeBuildDirPath() = buildDirPath.getRelativeToProjectPath()
+    fun getRelativeTestDirPath() = testDirPath.getRelativeToProjectPath()
+    fun getRelativeSourcesPaths() = sourcePaths.map { it.getRelativeToProjectPath() }
 
-    fun getTargetPath() = relativize(project.basePath ?: "", state.targetPath)
-    fun getBuildDirPath() = relativize(project.basePath ?: "", state.buildDirPath)
-    fun getTestDirPath() = relativize(project.basePath ?: "", state.testDirPath)
-    fun getSynchronizeCode() = state.synchronizeCode
-    fun getSourcePaths() = state.sourcePaths.map { relativize(project.basePath ?: "", it) }.toList()
+    private fun String?.getRelativeToProjectPath(): String {
+        logger.info("getRelativeToProjectPath was called on $this")
+        this ?: error("Paths are not initialized.")
+        val projectPath = project?.basePath ?: let {
+            notifyError("Could not get project path.", project)
+            return "/"
+        }
+        return relativize(projectPath, this)
+    }
 
-    override fun loadState(state: GrpcProjectSettings) {
-        XmlSerializerUtil.copyBean(state, projectState)
+    // try to get build dir, tests dir and cmake target paths from ide
+    private fun init() {
+        fun couldNotGetItem(itemName: String) = notifyError(
+            """Could not get $itemName.
+               Please, provide paths manually in settings -> tools -> UTBot Settings.
+            """.trimMargin(),
+            project
+        )
+
+        val confAndTarget = CMakeAppRunConfiguration.getSelectedConfigurationAndTarget(project)
+        val cmakeConfigurations = confAndTarget?.first?.cMakeTarget?.buildConfigurations
+        if (cmakeConfigurations == null || cmakeConfigurations.isEmpty()) {
+            couldNotGetItem("cmakeConfigurations")
+            return
+        }
+
+        val cmakeConfiguration = cmakeConfigurations.first() // todo: when there are more than one configuration?
+        targetPath = cmakeConfiguration.productFile?.absolutePath ?: let {
+            couldNotGetItem("targetPath")
+            "/"
+        }
+        buildDirPath = cmakeConfiguration.buildWorkingDir.absolutePath
+        val projectPath = project?.basePath
+        testDirPath = if (projectPath != null) {
+            Paths.get(projectPath, "tests").toString()
+        } else {
+            couldNotGetItem("testDirPath")
+            "/"
+        }
+    }
+
+    private fun checkForUninitializedDataAndInit() {
+        if (targetPath == null || buildDirPath == null || testDirPath == null)
+            init()
+    }
+
+    override fun getState() = this
+
+    override fun loadState(state: ProjectSettings) {
+        XmlSerializerUtil.copyBean(state, this)
     }
 }

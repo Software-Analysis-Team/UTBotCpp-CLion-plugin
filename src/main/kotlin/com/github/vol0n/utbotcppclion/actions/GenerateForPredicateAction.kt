@@ -166,7 +166,11 @@ class GenerateForPredicateAction : AnAction() {
             ValidationType.UINT8_T to "uint8_t",
             ValidationType.UINT16_T to "uint16_t",
             ValidationType.UINT32_T to "uint32_t",
-            ValidationType.UINT64_T to "uint64_t"
+            ValidationType.UINT64_T to "uint64_t",
+            ValidationType.CHAR to "char",
+            ValidationType.FLOAT to "float",
+            ValidationType.STRING to "string",
+            ValidationType.BOOL to "bool"
         )
 
         private val integerBounds = mapOf(

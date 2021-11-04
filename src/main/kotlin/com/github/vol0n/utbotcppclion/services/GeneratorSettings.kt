@@ -5,6 +5,7 @@ import com.intellij.openapi.components.PersistentStateComponent
 import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
 import com.intellij.util.xmlb.XmlSerializerUtil
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.swing.Swing
@@ -22,7 +23,14 @@ data class GeneratorSettings(
     val client = GrpcStarter.startClient()
 
     @com.intellij.util.xmlb.annotations.Transient
-    val grpcCoroutineScope = CoroutineScope(Dispatchers.Swing)
+    val grpcCoroutineScope: CoroutineScope
+
+    init {
+        val handler = CoroutineExceptionHandler { _, exception ->
+            println("CoroutineExceptionHandler got $exception")
+        }
+        grpcCoroutineScope = CoroutineScope(Dispatchers.Swing + handler)
+    }
 
     override fun getState(): GeneratorSettings {
         return this

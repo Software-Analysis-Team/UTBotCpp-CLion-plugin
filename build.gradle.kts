@@ -44,7 +44,7 @@ plugins {
     kotlin("plugin.serialization") version "1.5.30"
 
     id("com.google.protobuf") version "0.8.15"
-    // id("org.jlleitschuh.gradle.ktlint") version "9.2.1"
+    //id("io.gitlab.arturbosch.detekt").version("1.19.0-RC1")
     idea
     application
 }

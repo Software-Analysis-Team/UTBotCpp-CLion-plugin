@@ -17,8 +17,8 @@
                              id="com.github.vol0n.utbotcppclion.services.ProjectConfigurable"
                              displayName="UTBot Settings"
                              nonDefaultProject="true"/>
+        <notificationGroup id="Custom Notification Group" displayType="BALLOON"/>
     </extensions>
-
 
     <actions>
         <group id="com.github.vol0n.utbotcppclion.actions.UTBot.editor" text="UTBot Actions" popup="true">

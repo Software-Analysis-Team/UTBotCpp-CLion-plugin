@@ -4,7 +4,6 @@ import com.github.vol0n.utbotcppclion.client.GrpcStarter
 import io.grpc.Server
 import io.grpc.ServerBuilder
 import kotlin.reflect.KCallable
-import kotlin.reflect.KClass
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import testsgen.Testgen
@@ -100,8 +99,7 @@ class Server(private val port: Int) {
             logStarted(this::getFunctionReturnType)
             logFinished(this::getFunctionReturnType)
             return Testgen.FunctionTypeResponse.newBuilder().setValidationType(
-                //Util.ValidationType.values().random()
-                Util.ValidationType.CHAR
+                Util.ValidationType.values().random()
             ).build()
         }
 

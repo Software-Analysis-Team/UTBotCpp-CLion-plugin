@@ -5,6 +5,8 @@ import com.github.vol0n.utbotcppclion.ui.GeneratorSettingsDialog
 import com.github.vol0n.utbotcppclion.utils.handleTestsResponse
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
+import kotlin.coroutines.EmptyCoroutineContext
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import testsgen.Testgen
