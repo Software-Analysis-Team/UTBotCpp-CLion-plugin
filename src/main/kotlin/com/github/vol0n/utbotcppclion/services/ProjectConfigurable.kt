@@ -1,5 +1,6 @@
 package com.github.vol0n.utbotcppclion.services
 
+import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.fileChooser.FileChooser
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.observable.properties.GraphPropertyImpl.Companion.graphProperty
@@ -16,40 +17,49 @@ import java.awt.Dimension
 /**
  * Get project related info from settings menu.
  */
-class ProjectConfigurable(private val targetProject: Project): BoundConfigurable(
+class ProjectConfigurable(private val targetProject: Project) : BoundConfigurable(
     "Project Settings for Generating Tests"
 ) {
+    private val logger = Logger.getInstance("ProjectConfigurable")
     private val graphProperty = PropertyGraph()
     private val settingsState = targetProject.getService(ProjectSettings::class.java).state
-    private val buildDirPath = graphProperty.graphProperty { settingsState.buildDirPath }
-    private val targetPath = graphProperty.graphProperty { settingsState.targetPath }
-    private val testsDirPath = graphProperty.graphProperty { settingsState.testDirPath }
+    private val buildDirPath = graphProperty.graphProperty { settingsState.buildDirPath ?: "/" }
+    private val targetPath = graphProperty.graphProperty { settingsState.targetPath ?: "/" }
+    private val testsDirPath = graphProperty.graphProperty { settingsState.testDirPath ?: "/" }
     private val synchronizeCode = graphProperty.graphProperty { settingsState.synchronizeCode }
-    private val sourcePathListModel = CollectionListModel(*targetProject.getService(ProjectSettings::class.java).state.sourcePaths.toTypedArray())
+    private val sourcePathListModel =
+        CollectionListModel(*targetProject.getService(ProjectSettings::class.java).state.sourcePaths.toTypedArray())
 
     override fun createPanel(): DialogPanel {
+        logger.info("createPanel was called")
         return panel {
             row {
                 label("Build directory: ")
-                textFieldWithBrowseButton(buildDirPath,
+                textFieldWithBrowseButton(
+                    buildDirPath,
                     project = targetProject,
-                    fileChooserDescriptor = FileChooserDescriptorFactory.createSingleFolderDescriptor()) { folder ->
+                    fileChooserDescriptor = FileChooserDescriptorFactory.createSingleFolderDescriptor()
+                ) { folder ->
                     folder.path
                 }
             }
             row {
                 label("Target path: ")
-                textFieldWithBrowseButton(targetPath,
+                textFieldWithBrowseButton(
+                    targetPath,
                     project = targetProject,
-                    fileChooserDescriptor = FileChooserDescriptorFactory.createSingleFileDescriptor()) { file ->
+                    fileChooserDescriptor = FileChooserDescriptorFactory.createSingleFileDescriptor()
+                ) { file ->
                     file.path
                 }
             }
             row {
                 label("Tests directory: ")
-                textFieldWithBrowseButton(testsDirPath,
+                textFieldWithBrowseButton(
+                    testsDirPath,
                     project = targetProject,
-                    fileChooserDescriptor = FileChooserDescriptorFactory.createSingleFolderDescriptor()) { folder ->
+                    fileChooserDescriptor = FileChooserDescriptorFactory.createSingleFolderDescriptor()
+                ) { folder ->
                     folder.path
                 }
             }
@@ -62,16 +72,17 @@ class ProjectConfigurable(private val targetProject: Project): BoundConfigurable
             row {
                 component(
                     ToolbarDecorator.createDecorator(JList(sourcePathListModel))
-                    .setAddAction {
-                        FileChooser.chooseFile(
-                            FileChooserDescriptorFactory.createMultipleFilesNoJarsDescriptor(), targetProject, null
-                        ) {
-                            sourcePathListModel.add(it.path)
-                        }
-                    }.setRemoveAction { actionBtn ->
-                        sourcePathListModel.remove((actionBtn.contextComponent as JList<String>).selectedIndex)
-                    }.setPreferredSize(Dimension(500, 200))
-                    .createPanel())
+                        .setAddAction {
+                            FileChooser.chooseFile(
+                                FileChooserDescriptorFactory.createMultipleFilesNoJarsDescriptor(), targetProject, null
+                            ) {
+                                sourcePathListModel.add(it.path)
+                            }
+                        }.setRemoveAction { actionBtn ->
+                            sourcePathListModel.remove((actionBtn.contextComponent as JList<String>).selectedIndex)
+                        }.setPreferredSize(Dimension(500, 200))
+                        .createPanel()
+                )
             }
 
         }
@@ -83,9 +94,11 @@ class ProjectConfigurable(private val targetProject: Project): BoundConfigurable
                 || (testsDirPath.get() != settingsState.testDirPath)
                 || (synchronizeCode.get() != settingsState.synchronizeCode)
                 || (sourcePathListModel.toList() != settingsState.sourcePaths)
+
     }
 
     override fun apply() {
+        logger.info("apply was called")
         super.apply()
         settingsState.targetPath = targetPath.get()
         settingsState.buildDirPath = buildDirPath.get()
@@ -95,10 +108,11 @@ class ProjectConfigurable(private val targetProject: Project): BoundConfigurable
     }
 
     override fun reset() {
+        logger.info("reset was called")
         super.reset()
-        targetPath.set(settingsState.targetPath)
-        buildDirPath.set(settingsState.buildDirPath)
-        testsDirPath.set(settingsState.testDirPath)
+        targetPath.set(settingsState.targetPath ?: "/")
+        buildDirPath.set(settingsState.buildDirPath ?: "/")
+        testsDirPath.set(settingsState.testDirPath ?: "/")
         synchronizeCode.set(settingsState.synchronizeCode)
         sourcePathListModel.also {
             it.removeAll()
