@@ -42,6 +42,54 @@ class GenerateForPredicateAction : AnAction() {
             .createPopup()
     }
 
+    fun createTrueFalsePopup(onChoose: (String) -> Unit) = createListPopup("Select bool value",
+        listOf("true", "false")) { onChoose(it) }
+
+    fun createTextFieldPopup(type: ValidationType, onChoose: (String) -> Unit): JBPopup {
+        val textField = ExtendableTextField()
+        textField.minimumSize = Dimension(100, textField.width)
+        textField.text = defaultReturnValues[type]
+        textField.selectAll()
+        val popup = JBPopupFactory.getInstance().createComponentPopupBuilder(textField, null)
+            .setFocusable(true)
+            .setRequestFocus(true)
+            .setTitle("Specify Return Value of type ${validationTypeName[type]}")
+            .createPopup()
+
+        var canClosePopup = true
+        ComponentValidator(popup).withValidator(Supplier<ValidationInfo?> {
+            val validationResult = returnValueValidators[type]?.let { it(textField.text) }
+            if (validationResult == null) {
+                canClosePopup = true
+                null
+            } else {
+                canClosePopup = false
+                ValidationInfo(validationResult, textField)
+            }
+        }).installOn(textField)
+
+        textField.document.addDocumentListener(object : DocumentAdapter() {
+            override fun textChanged(p0: DocumentEvent) {
+                ComponentValidator.getInstance(textField).ifPresent { v ->
+                    v.revalidate()
+                }
+            }
+        })
+
+        textField.addKeyListener(object : KeyAdapter() {
+            override fun keyPressed(e: KeyEvent) {
+                if (e.keyCode == KeyEvent.VK_ENTER) {
+                    if (canClosePopup) {
+                        popup.cancel()
+                        onChoose(textField.text)
+                    }
+                }
+            }
+        })
+
+        return popup
+    }
+
     override fun actionPerformed(e: AnActionEvent) {
 
         fun sendPredicateToServer(validationType: ValidationType, returnValue: String, predicate: String) {
@@ -53,80 +101,37 @@ class GenerateForPredicateAction : AnAction() {
             }
         }
 
-        /**
-         * Shows user a popup to enter return value, if user enters the acceptable value, then
-         * it triggers [sendPredicateToServer].
-         */
-        fun askForReturnValue(validationType: ValidationType, predicate: String) {
-            val textField = ExtendableTextField()
-            textField.minimumSize = Dimension(100, textField.width)
-            textField.text = defaultReturnValues[validationType]
-            textField.selectAll()
-            val popup = JBPopupFactory.getInstance().createComponentPopupBuilder(textField, null)
-                .setFocusable(true)
-                .setRequestFocus(true)
-                .setTitle("Specify Return Value of type ${validationTypeName[validationType]}")
-                .createPopup()
-
-            var canClosePopup = true
-            ComponentValidator(popup).withValidator(Supplier<ValidationInfo?> {
-                val validationResult = returnValueValidators[validationType]?.let { it(textField.text) }
-                if (validationResult == null) {
-                    canClosePopup = true
-                    null
-                } else {
-                    canClosePopup = false
-                    ValidationInfo(validationResult, textField)
+        fun chooseCondition(type: ValidationType, proceedWithPredicate: (predicate: String) -> Unit) {
+            when (type) {
+                ValidationType.STRING, ValidationType.BOOL -> {
+                    proceedWithPredicate("==")
+                    return
                 }
-            }).installOn(textField)
-
-            textField.document.addDocumentListener(object : DocumentAdapter() {
-                override fun textChanged(p0: DocumentEvent) {
-                    ComponentValidator.getInstance(textField).ifPresent { v ->
-                        v.revalidate()
-                    }
+                else -> {
+                    createListPopup("Select Predicate", listOf("==", "<=", "=>", "<", ">")) { predicate ->
+                        proceedWithPredicate(predicate)
+                    }.showInBestPositionFor(e.dataContext)
                 }
-            })
-
-            textField.addKeyListener(object : KeyAdapter() {
-                override fun keyPressed(e: KeyEvent) {
-                    if (e.keyCode == KeyEvent.VK_ENTER) {
-                        if (canClosePopup) {
-                            popup.cancel()
-                            sendPredicateToServer(validationType, textField.text, predicate)
-                        }
-                    }
-                }
-            })
-            popup.showInBestPositionFor(e.dataContext)
+            }
         }
 
-        /**
-         * Shows user a popup to select predicate if needed, if user selects, it triggers [askForReturnValue].
-         * User can ignore the popup, then nothing happens.
-         */
-        fun askForPredicate(type: ValidationType) {
-            if (type == ValidationType.STRING) {
-                askForReturnValue(type, "==")
-                return
-            }
-            val predicatePopup = if (type == ValidationType.BOOL) {
-                createListPopup("Select Return Value", listOf("true", "false")) { chosenStr ->
-                    sendPredicateToServer(ValidationType.BOOL, chosenStr, "==")
-                }
+        fun chooseReturnValue(type: ValidationType, proceedWithReturnValue: (returnValue: String) -> Unit) {
+            val popup = if (type == ValidationType.BOOL) {
+                createTrueFalsePopup { returnValue -> proceedWithReturnValue(returnValue) }
             } else {
-                createListPopup("Select Predicate", listOf("==", "<=", "=>", "<", ">")) { predicate ->
-                    askForReturnValue(type, predicate)
-                }
+                createTextFieldPopup(type) { returnValue -> proceedWithReturnValue(returnValue) }
             }
-            predicatePopup.showInBestPositionFor(e.dataContext)
+            popup.showInBestPositionFor(e.dataContext)
         }
 
         coroutinesScopeForGrpc.launch {
             val type = client.getFunctionReturnType(getFunctionRequestMessage(e)).validationType
-            askForPredicate(type)
+            chooseCondition(type) { predicate ->
+                chooseReturnValue(type) { returnValue ->
+                    sendPredicateToServer(type, returnValue, predicate)
+                }
+            }
         }
-
     }
 
     companion object {
