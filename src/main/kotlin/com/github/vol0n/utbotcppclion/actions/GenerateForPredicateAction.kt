@@ -1,11 +1,8 @@
 package com.github.vol0n.utbotcppclion.actions
 
 import com.github.vol0n.utbotcppclion.actions.utils.client
-import com.github.vol0n.utbotcppclion.actions.utils.coroutinesScopeForGrpc
 import com.github.vol0n.utbotcppclion.actions.utils.getContainingFunction
 import com.github.vol0n.utbotcppclion.ui.GeneratorSettingsDialog
-import com.github.vol0n.utbotcppclion.utils.handleTestsResponse
-import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.ui.ComponentValidator
 import com.intellij.openapi.ui.ValidationInfo
@@ -22,11 +19,9 @@ import java.awt.event.KeyEvent
 import java.math.BigInteger
 import java.util.function.Supplier
 import kotlinx.coroutines.launch
-import testsgen.Testgen
 
-class GenerateForPredicateAction : AnAction() {
-
-    override fun update(e: AnActionEvent) {
+class GenerateForPredicateAction : UTBotTestsResponseAction() {
+    override fun updateIfServerAvailable(e: AnActionEvent) {
         val containingFun = getContainingFunction(e)
         e.presentation.isEnabledAndVisible = (containingFun != null)
     }
@@ -95,9 +90,7 @@ class GenerateForPredicateAction : AnAction() {
         fun sendPredicateToServer(validationType: ValidationType, returnValue: String, predicate: String) {
             val predicateRequest = getPredicateRequestMessage(validationType, returnValue, predicate, e)
             if (GeneratorSettingsDialog().showAndGet()) {
-                coroutinesScopeForGrpc.launch {
-                    client.generateForPredicate(predicateRequest).handleTestsResponse()
-                }
+                e.client.generateForPredicate(predicateRequest)
             }
         }
 
@@ -124,8 +117,8 @@ class GenerateForPredicateAction : AnAction() {
             popup.showInBestPositionFor(e.dataContext)
         }
 
-        coroutinesScopeForGrpc.launch {
-            val type = client.getFunctionReturnType(getFunctionRequestMessage(e)).validationType
+        e.client.grpcCoroutineScope.launch {
+            val type = e.client.getFunctionReturnType(getFunctionRequestMessage(e)).validationType
             chooseCondition(type) { predicate ->
                 chooseReturnValue(type) { returnValue ->
                     sendPredicateToServer(type, returnValue, predicate)

@@ -5,11 +5,11 @@ import com.github.vol0n.utbotcppclion.actions.utils.getContainingClass
 import com.intellij.openapi.actionSystem.AnActionEvent
 
 class GenerateForClassAction : UTBotTestsResponseAction() {
-    override val funToGetTestResponse = { e: AnActionEvent ->
-        client.generateForClass(getClassRequestMessage(e))
+    override fun actionPerformed(e: AnActionEvent) {
+        e.client.generateForClass(getClassRequestMessage(e))
     }
 
-    override fun update(e: AnActionEvent) {
+    override fun updateIfServerAvailable(e: AnActionEvent) {
         e.presentation.isEnabledAndVisible = (getContainingClass(e) != null)
     }
 }

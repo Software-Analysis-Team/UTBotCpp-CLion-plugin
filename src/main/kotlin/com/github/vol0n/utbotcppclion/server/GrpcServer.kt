@@ -1,21 +1,76 @@
 package com.github.vol0n.utbotcppclion.server
 
 import com.github.vol0n.utbotcppclion.client.GrpcStarter
+import io.grpc.ForwardingServerCall
+import io.grpc.ForwardingServerCallListener
+import io.grpc.Metadata
 import io.grpc.Server
 import io.grpc.ServerBuilder
+import io.grpc.ServerCall
+import io.grpc.ServerCallHandler
+import io.grpc.ServerInterceptor
+import io.grpc.Status
 import kotlin.reflect.KCallable
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import testsgen.Testgen
 import testsgen.TestsGenServiceGrpcKt
 import testsgen.Util
 import java.io.File
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import java.nio.file.Files
 import java.nio.file.Paths
 
+class LogInterceptor : ServerInterceptor {
+
+    companion object {
+        val LOG: Logger = LoggerFactory.getLogger(LogInterceptor::class.java)
+    }
+
+    override fun <ReqT : Any?, RespT : Any?> interceptCall(
+        call: ServerCall<ReqT, RespT>,
+        headers: io.grpc.Metadata,
+        next: ServerCallHandler<ReqT, RespT>
+    ): ServerCall.Listener<ReqT> {
+        val logServerCall = LogServerCall(call)
+        return object : ForwardingServerCallListener.SimpleForwardingServerCallListener<ReqT>(
+            next.startCall(
+                logServerCall,
+                headers
+            )
+        ) {
+            override fun onMessage(message: ReqT) {
+                LOG.info("[IN] $message > $headers")
+                super.onMessage(message)
+            }
+        }
+    }
+
+    private class LogServerCall<ReqT, RestT>(
+        delegate: ServerCall<ReqT, RestT>
+    ) : ForwardingServerCall.SimpleForwardingServerCall<ReqT, RestT>(delegate) {
+        override fun close(status: Status, trailers: Metadata?) {
+            if (status.isOk) {
+                LOG.info("[OUT] $status")
+            } else {
+                LOG.warn("[OUT] code=${status.code}, description=${status.description}, cause=${status.cause.toString()}")
+            }
+            super.close(status, trailers)
+        }
+    }
+}
+
 class Server(private val port: Int) {
+
+    companion object {
+        private val LOG: Logger = LoggerFactory.getLogger(Server::class.java)
+    }
+
     private val server: Server = ServerBuilder
         .forPort(port)
+        .intercept(LogInterceptor())
         .addService(TestGenService())
         .build()
 
@@ -174,6 +229,38 @@ class Server(private val port: Int) {
 
             logFinished(this::generatePredicateTests)
             return buildDummyTestsResponses(pathToGeneratedTestFile, generatedCode)
+        }
+
+        override suspend fun heartbeat(request: Testgen.DummyRequest): Testgen.HeartbeatResponse {
+            return Testgen.HeartbeatResponse.newBuilder().setLinked(true).build()
+        }
+
+        override fun configureProject(request: Testgen.ProjectConfigRequest): Flow<Testgen.ProjectConfigResponse> {
+            return flow {
+                val messages = listOf("one", "two", "Three", "four", "five")
+                repeat(5) {
+                    println("Before emit in configureProject!")
+                    emit(
+                        Testgen.ProjectConfigResponse.newBuilder()
+                            .setProgress(
+                                Util.Progress.newBuilder()
+                                    .setMessage(messages[it])
+                                    .setPercent(it.toDouble() / 4)
+                                    .setCompleted(it == 4)
+                                    .build()
+                            )
+                            .setMessage("Dummy message")
+                            .setType(
+                                Testgen.ProjectConfigStatus.values().let { arr ->
+                                    arr.get(100)
+                                }
+                            )
+                            .build()
+                    )
+                    println("After emit in configureProject")
+                    delay(1000L)
+                }
+            }
         }
     }
 }

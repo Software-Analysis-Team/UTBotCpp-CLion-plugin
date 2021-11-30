@@ -35,8 +35,9 @@ data class ProjectSettings(
         logger.info("ProjectSettings instance's constructor is called")
         // project is null when ide creates ProjectSettings instance from serialized xml file
         // project is not null when plugin is running in user's ide, so we can access ide for paths
-        if (project != null)
+        if (project != null) {
             checkForUninitializedDataAndInit()
+        }
     }
 
     fun getRelativeTargetPath() = targetPath.getRelativeToProjectPath()
@@ -54,14 +55,15 @@ data class ProjectSettings(
         return relativize(projectPath, this)
     }
 
-    // try to get build dir, tests dir and cmake target paths from ide
-    private fun init() {
-        fun couldNotGetItem(itemName: String) = notifyError(
-            """Could not get $itemName.
+    private fun couldNotGetItem(itemName: String) = notifyError(
+        """Could not get $itemName.
                Please, provide paths manually in settings -> tools -> UTBot Settings.
             """.trimMargin(),
-            project
-        )
+        project
+    )
+
+    // try to get build dir, tests dir and cmake target paths from ide
+    private fun init() {
 
         val confAndTarget = CMakeAppRunConfiguration.getSelectedConfigurationAndTarget(project)
         val cmakeConfigurations = confAndTarget?.first?.cMakeTarget?.buildConfigurations

@@ -44,7 +44,7 @@ plugins {
     kotlin("plugin.serialization") version "1.5.30"
 
     id("com.google.protobuf") version "0.8.15"
-    //id("io.gitlab.arturbosch.detekt").version("1.19.0-RC1")
+    // id("io.gitlab.arturbosch.detekt").version("1.19.0-RC1")
     idea
     application
 }
@@ -66,6 +66,10 @@ dependencies {
     implementation("io.grpc:grpc-kotlin-stub:$grpcKotlinVersion")
     compileOnly("javax.annotation:javax.annotation-api:1.3.2")
     implementation("com.google.protobuf:protobuf-kotlin:$protobufVersion")
+
+    implementation("org.slf4j:slf4j-api:1.7.30")
+    implementation("ch.qos.logback:logback-core:1.2.3")
+    implementation("ch.qos.logback:logback-classic:1.2.3")
 
     // yaml
     implementation("com.charleskorn.kaml:kaml:0.36.0")

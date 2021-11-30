@@ -13,11 +13,13 @@
     <extensions defaultExtensionNs="com.intellij">
         <applicationService serviceImplementation="com.github.vol0n.utbotcppclion.services.GeneratorSettings"/>
         <projectService serviceImplementation="com.github.vol0n.utbotcppclion.services.ProjectSettings"/>
+        <projectService serviceImplementation="com.github.vol0n.utbotcppclion.services.Client"/>
         <projectConfigurable parentId="tools" instance="com.github.vol0n.utbotcppclion.services.ProjectConfigurable"
                              id="com.github.vol0n.utbotcppclion.services.ProjectConfigurable"
                              displayName="UTBot Settings"
                              nonDefaultProject="true"/>
         <notificationGroup id="Custom Notification Group" displayType="BALLOON"/>
+        <statusBarWidgetFactory implementation="com.github.vol0n.utbotcppclion.ui.StatusBar"/>
     </extensions>
 
     <actions>
@@ -47,6 +49,8 @@
                     class="com.github.vol0n.utbotcppclion.actions.GenerateForAssertionAction"
                     text="Generate Tests Failing Assertion"
                     description="Generate unit tests that fail assertion on this line"/>
+            <action id="com.github.vol0n.utbotcppclion.actions.DevAction"
+                    class="com.github.vol0n.utbotcppclion.actions.DevAction" text="Try something new"/>
         </group>
         <group id="com.github.vol0n.utbotcppclion.actions.UTBot.projectTree" text="UTBot Actions" popup="true">
             <add-to-group group-id="ProjectViewPopupMenuModifyGroup" anchor="last"/>
@@ -57,5 +61,16 @@
                     class="com.github.vol0n.utbotcppclion.actions.GenerateForFolderAction" text="Generate For Folder"
                     description="Generate unit tests for this folder"/>
         </group>
+        <action id="com.github.vol0n.utbotcppclion.actions.AskServerToGenerateBuildDir"
+                class="com.github.vol0n.utbotcppclion.actions.AskServerToGenerateBuildDir"
+                text="Generate Build Directory" description="Ask server to generate build dir"/>
+        <action id="com.github.vol0n.utbotcppclion.actions.ConfigureProjectAction"
+                class="com.github.vol0n.utbotcppclion.actions.ConfigureProjectAction" text="Configure Project"
+                description="Configure project so that server can generate tests"/>
+        <action id="com.github.vol0n.utbotcppclion.actions.AskServerToGenerateJson"
+                class="com.github.vol0n.utbotcppclion.actions.AskServerToGenerateJson" text="Try To Generate"
+                description="Ask server to generate missing json files"/>
+        <action id="com.github.vol0n.utbotcppclion.actions.HeartBeatAction"
+                class="com.github.vol0n.utbotcppclion.actions.HeartBeatAction" text="HeartBeat"/>
     </actions>
 </idea-plugin>

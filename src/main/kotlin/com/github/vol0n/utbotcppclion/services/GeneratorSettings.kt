@@ -19,18 +19,6 @@ data class GeneratorSettings(
     var timeoutPerFunction: Int = 5,
     var timeoutPerTest: Int = 20
 ) : PersistentStateComponent<GeneratorSettings> {
-    @com.intellij.util.xmlb.annotations.Transient
-    val client = GrpcStarter.startClient()
-
-    @com.intellij.util.xmlb.annotations.Transient
-    val grpcCoroutineScope: CoroutineScope
-
-    init {
-        val handler = CoroutineExceptionHandler { _, exception ->
-            println("CoroutineExceptionHandler got $exception")
-        }
-        grpcCoroutineScope = CoroutineScope(Dispatchers.Swing + handler)
-    }
 
     override fun getState(): GeneratorSettings {
         return this

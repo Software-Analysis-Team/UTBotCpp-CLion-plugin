@@ -5,11 +5,11 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
 
 class GenerateForAssertionAction : UTBotTestsResponseAction() {
-    override val funToGetTestResponse = { e: AnActionEvent ->
-        client.generateForAssertion(getAssertionRequestMessage(e))
+    override fun actionPerformed(e: AnActionEvent) {
+        e.client.generateForAssertion(getAssertionRequestMessage(e))
     }
 
-    override fun update(e: AnActionEvent) {
+    override fun updateIfServerAvailable(e: AnActionEvent) {
         val project = e.project
         val editor = e.getData(CommonDataKeys.EDITOR)
         val file = e.getData(CommonDataKeys.VIRTUAL_FILE)

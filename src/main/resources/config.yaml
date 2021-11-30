@@ -1,2 +1,2 @@
-grpc port: 50051
+grpc port: 5051
 grpc server name: "localhost"
