@@ -1,6 +1,7 @@
 package com.github.vol0n.utbotcppclion.server
 
 import com.github.vol0n.utbotcppclion.client.GrpcStarter
+import io.grpc.Attributes
 import io.grpc.ForwardingServerCall
 import io.grpc.ForwardingServerCallListener
 import io.grpc.Metadata
@@ -10,6 +11,7 @@ import io.grpc.ServerCall
 import io.grpc.ServerCallHandler
 import io.grpc.ServerInterceptor
 import io.grpc.Status
+import kotlin.random.Random
 import kotlin.reflect.KCallable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -42,7 +44,8 @@ class LogInterceptor : ServerInterceptor {
             )
         ) {
             override fun onMessage(message: ReqT) {
-                LOG.info("[IN] $message > $headers")
+                if (message !is Testgen.DummyRequest)
+                    LOG.info("[IN] $message")
                 super.onMessage(message)
             }
         }
@@ -52,9 +55,7 @@ class LogInterceptor : ServerInterceptor {
         delegate: ServerCall<ReqT, RestT>
     ) : ForwardingServerCall.SimpleForwardingServerCall<ReqT, RestT>(delegate) {
         override fun close(status: Status, trailers: Metadata?) {
-            if (status.isOk) {
-                LOG.info("[OUT] $status")
-            } else {
+            if (!status.isOk) {
                 LOG.warn("[OUT] code=${status.code}, description=${status.description}, cause=${status.cause.toString()}")
             }
             super.close(status, trailers)
@@ -252,7 +253,7 @@ class Server(private val port: Int) {
                             .setMessage("Dummy message")
                             .setType(
                                 Testgen.ProjectConfigStatus.values().let { arr ->
-                                    arr.get(100)
+                                    arr.get(Random.nextInt(arr.size))
                                 }
                             )
                             .build()

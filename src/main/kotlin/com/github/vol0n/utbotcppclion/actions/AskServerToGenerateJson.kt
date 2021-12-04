@@ -5,11 +5,11 @@ import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 
 class AskServerToGenerateJson: AnAction() {
-    override fun actionPerformed(e: AnActionEvent) {
-        e.client.generateJSon()
+    init {
+        templatePresentation.text = "Ask Server To Generate Json"
     }
 
-    override fun update(e: AnActionEvent) {
-        e.presentation.text = "Ask Server To Generate Json"
+    override fun actionPerformed(e: AnActionEvent) {
+        e.client.generateJSon()
     }
 }

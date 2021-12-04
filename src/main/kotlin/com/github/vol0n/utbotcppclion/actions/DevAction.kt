@@ -17,6 +17,7 @@ import java.awt.Rectangle
 // For development only
 internal class DevAction: AnAction() {
     override fun actionPerformed(e: AnActionEvent) {
+        /*
         val editor = e.getRequiredData(CommonDataKeys.EDITOR)
         // how to show coverage
         val hl = editor.markupModel.addLineHighlighter(null,
@@ -27,6 +28,8 @@ internal class DevAction: AnAction() {
             delay(1000L)
             editor.markupModel.removeAllHighlighters()
         }
+         */
+        e.client.doHandShake()
     }
 }
 

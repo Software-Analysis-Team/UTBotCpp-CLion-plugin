@@ -13,6 +13,9 @@ import com.github.vol0n.utbotcppclion.ui.UTBotRequestProgressIndicator
 import com.github.vol0n.utbotcppclion.utils.createFileAndMakeDirs
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
+import io.grpc.Metadata
+import io.grpc.Metadata.ASCII_STRING_MARSHALLER
+import io.grpc.stub.MetadataUtils
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -30,13 +33,14 @@ import testsgen.Util
 import java.net.ConnectException
 
 class Client(val project: Project) {
-    val stub = GrpcStarter.startClient().stub
+    private var stub = GrpcStarter.startClient().stub
     val grpcCoroutineScope: CoroutineScope
     private var connectionStatus = ConnectionStatus.INIT
     private val connectionChangedPublisher =
         project.messageBus.syncPublisher(UTBotConnectionChangedNotifier.CONNECTION_CHANGED_TOPIC)
     private var heartBeatJob: Job? = null
     private val logger = Logger.getInstance(this::class.java)
+    private val metadata: io.grpc.Metadata = Metadata()
 
     init {
         val handler = CoroutineExceptionHandler { _, exception ->
@@ -50,12 +54,34 @@ class Client(val project: Project) {
     fun getConnectionStatus() = connectionStatus
     fun isServerAvailable() = connectionStatus == ConnectionStatus.CONNECTED
 
+    fun doHandShake() {
+        grpcCoroutineScope.launch {
+            try {
+                stub.handshake(Testgen.DummyRequest.newBuilder().build())
+            } catch (e: Exception) {
+                logger.warn("HandShake failed with the following error: ${e.message}")
+            }
+        }
+    }
+
+    suspend fun setMetadata() {
+        val clientID = System.getenv("USER") ?: "someUserId"
+        try {
+            stub.registerClient(Testgen.RegisterClientRequest.newBuilder().setClientId(clientID).build())
+        } catch (e: Exception) {
+            logger.warn("Setting metadata failed: ${e.message}")
+        }
+        metadata.put(Metadata.Key.of("clientid", ASCII_STRING_MARSHALLER), clientID)
+        stub = MetadataUtils.attachHeaders(stub, metadata)
+    }
+
     fun periodicHeartBeat() {
         if (heartBeatJob != null) {
             heartBeatJob?.cancel()
         }
         logger.info("Start heartbeating the server!")
         heartBeatJob = grpcCoroutineScope.launch {
+            setMetadata()
             while (true) {
                 heartBeat()
                 delay(HEARTBEAT_INTERVAL)
@@ -108,82 +134,84 @@ class Client(val project: Project) {
         request: Testgen.FunctionRequest
     ): Testgen.FunctionTypeResponse = withContext(Dispatchers.IO) { stub.getFunctionReturnType(request) }
 
-    private fun configureProject(
-        request: Testgen.ProjectConfigRequest
-    ): Flow<Testgen.ProjectConfigResponse> = stub.configureProject(request)
-
     suspend fun handShake(): Testgen.DummyResponse = stub.handshake(Testgen.DummyRequest.newBuilder().build())
 
+    private fun progressOrNull(response: Testgen.ProjectConfigResponse): Util.Progress? =
+        if (response.hasProgress()) response.progress else null
+
     fun configureProject() {
+        fun handleProjectConfigResponse(response: Testgen.ProjectConfigResponse) {
+            when (response.type) {
+                Testgen.ProjectConfigStatus.IS_OK -> {
+                    notifyInfo("Project is configured!", project)
+                }
+                Testgen.ProjectConfigStatus.BUILD_DIR_NOT_FOUND -> {
+                    notifyError(
+                        "Project build dir not found! ${response.message}",
+                        project,
+                        AskServerToGenerateBuildDir()
+                    )
+                }
+                Testgen.ProjectConfigStatus.LINK_COMMANDS_JSON_NOT_FOUND, Testgen.ProjectConfigStatus.COMPILE_COMMANDS_JSON_NOT_FOUND -> {
+                    val missingFileName =
+                        if (response.type == Testgen.ProjectConfigStatus.LINK_COMMANDS_JSON_NOT_FOUND) "link_commands.json" else "compile_commands.json"
+                    notifyError(
+                        "Project is not configured properly: $missingFileName is missing in the build folder.",
+                        project, AskServerToGenerateJson()
+                    )
+                }
+                else -> notifyUnknownResponse(response, project)
+            }
+        }
+
         val request = getProjectConfigRequestMessage(project, Testgen.ConfigMode.CHECK)
         stub.configureProject(request).handleWithProgress(
             "Configuring project",
-            Testgen.ProjectConfigResponse::getProgress,
-            this@Client::handleProjectConfigResponse
+            ::progressOrNull,
+            ::handleProjectConfigResponse
         )
-    }
-
-    fun handleProjectConfigResponse(response: Testgen.ProjectConfigResponse) {
-        println("In handleProjectConfigResponse")
-        when (response.type) {
-            Testgen.ProjectConfigStatus.IS_OK -> {
-                notifyInfo("Project is configured!", project)
-            }
-            Testgen.ProjectConfigStatus.BUILD_DIR_NOT_FOUND -> {
-                notifyError("Project build dir not found! ${response.message}", project, AskServerToGenerateBuildDir())
-            }
-            Testgen.ProjectConfigStatus.LINK_COMMANDS_JSON_NOT_FOUND, Testgen.ProjectConfigStatus.COMPILE_COMMANDS_JSON_NOT_FOUND -> {
-                val missingFileName =
-                    if (response.type == Testgen.ProjectConfigStatus.LINK_COMMANDS_JSON_NOT_FOUND) "link_commands.json" else "compile_commands.json"
-                notifyError(
-                    "Project is not configured properly: $missingFileName is missing in the build folder.",
-                    project, AskServerToGenerateJson()
-                )
-            }
-            else -> notifyUnknownResponse(response, project)
-        }
     }
 
     fun createBuildDir() {
+        fun handleBuildDirCreation(serverResponse: Testgen.ProjectConfigResponse) {
+            when (serverResponse.type) {
+                Testgen.ProjectConfigStatus.IS_OK -> {
+                    notifyInfo("Build dir was created!", project)
+                    configureProject()
+                }
+                Testgen.ProjectConfigStatus.BUILD_DIR_CREATION_FAILED -> {
+                    notifyInfo("Failed to create build dir! ${serverResponse.message}", project)
+                }
+                else -> notifyUnknownResponse(serverResponse, project)
+            }
+        }
+
         val request = getProjectConfigRequestMessage(project, Testgen.ConfigMode.CREATE_BUILD_DIR)
         stub.configureProject(request).handleWithProgress(
             "Ask server to create build dir",
-            Testgen.ProjectConfigResponse::getProgress,
-            this@Client::handleBuildDirCreation
+            ::progressOrNull,
+            ::handleBuildDirCreation
         )
-    }
-
-    fun handleBuildDirCreation(serverResponse: Testgen.ProjectConfigResponse) {
-        when (serverResponse.type) {
-            Testgen.ProjectConfigStatus.IS_OK -> {
-                notifyInfo("Build dir was created!", project)
-                configureProject()
-            }
-            Testgen.ProjectConfigStatus.BUILD_DIR_CREATION_FAILED -> {
-                notifyInfo("Failed to create build dir! ${serverResponse.message}", project)
-            }
-            else -> notifyUnknownResponse(serverResponse, project)
-        }
     }
 
     fun generateJSon() {
+        fun handleJSONGeneration(serverResponse: Testgen.ProjectConfigResponse) {
+            when (serverResponse.type) {
+                Testgen.ProjectConfigStatus.IS_OK -> notifyInfo("Successfully configured project!", project)
+                Testgen.ProjectConfigStatus.RUN_JSON_GENERATION_FAILED -> notifyError(
+                    "UTBot tried to configure project, but failed with the " +
+                            "following message: ${serverResponse.message}", project
+                )
+                else -> notifyUnknownResponse(serverResponse, project)
+            }
+        }
+
         val request = getProjectConfigRequestMessage(project, Testgen.ConfigMode.GENERATE_JSON_FILES)
         stub.configureProject(request).handleWithProgress(
             "Ask server to generate json",
-            Testgen.ProjectConfigResponse::getProgress,
-            this@Client::handleJSONGeneration,
+            ::progressOrNull,
+            ::handleJSONGeneration,
         )
-    }
-
-    fun handleJSONGeneration(serverResponse: Testgen.ProjectConfigResponse) {
-        when (serverResponse.type) {
-            Testgen.ProjectConfigStatus.IS_OK -> notifyInfo("Successfully configured project!", project)
-            Testgen.ProjectConfigStatus.RUN_JSON_GENERATION_FAILED -> notifyError(
-                "UTBot tried to configure project, but failed with the " +
-                        "following message: ${serverResponse.message}", project
-            )
-            else -> notifyUnknownResponse(serverResponse, project)
-        }
     }
 
     suspend fun heartBeat() {
@@ -208,7 +236,7 @@ class Client(val project: Project) {
     // T: TestResponse | ProjectConfigResponse
     fun <T> Flow<T>.handleWithProgress(
         progressName: String,
-        progressAccessor: T.() -> Util.Progress,
+        progressAccessor: (T) -> Util.Progress?,
         onCompleted: (T) -> Unit = {},
         handleResponse: (T) -> Unit = {}
     ) {
@@ -220,15 +248,17 @@ class Client(val project: Project) {
                 this@handleWithProgress
                     .catch { exception -> logger.warn(exception.message) }
                     .collect {
-                    // update progress in status bar
-                    uiProgress.fraction = it.progressAccessor().percent
-                    uiProgress.text = it.progressAccessor().message
-                    handleResponse(it)
-                    // when we receive last message from server stream
-                    if (it.progressAccessor().completed) {
-                        onCompleted(it)
+                        val progress = progressAccessor(it)
+                        // when we receive last message from server stream
+                        if (progress == null || progress.completed) {
+                            onCompleted(it)
+                            return@collect
+                        }
+                        // update progress in status bar
+                        uiProgress.fraction = progress.percent
+                        uiProgress.text = progress.message
+                        handleResponse(it)
                     }
-                }
             }
             uiProgress.complete()
         }
@@ -236,6 +266,6 @@ class Client(val project: Project) {
 
     companion object {
         const val HEARTBEAT_INTERVAL: Long = 500L
-        const val STREAM_HANDLING_TIMEOUT: Long = 3000L
+        const val STREAM_HANDLING_TIMEOUT: Long = 5000L
     }
 }

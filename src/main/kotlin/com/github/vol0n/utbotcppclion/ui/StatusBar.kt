@@ -55,8 +55,6 @@ class UTBotStatusBar : StatusBarWidget, StatusBarWidget.TextPresentation {
         statusbar.project?.messageBus?.connect()?.subscribe(UTBotConnectionChangedNotifier.CONNECTION_CHANGED_TOPIC,
         object : UTBotConnectionChangedNotifier {
             override fun onChange(oldStatus: ConnectionStatus, newStatus: ConnectionStatus) {
-                println("onChange listener in status bar was called!")
-                println("statusBar: $statusBar")
                 statusBar?.updateWidget(ID())
             }
         })

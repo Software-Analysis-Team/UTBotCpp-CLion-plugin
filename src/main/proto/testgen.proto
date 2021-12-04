@@ -18,6 +18,21 @@ service TestsGenService {
     rpc Handshake(DummyRequest) returns(DummyResponse) {}
     rpc Heartbeat(DummyRequest) returns(HeartbeatResponse) {}
     rpc CreateTestsCoverageAndResult(CoverageAndResultsRequest) returns(stream CoverageAndResultsResponse) {}
+    rpc RegisterClient(RegisterClientRequest) returns(DummyResponse) {}
+    rpc OpenGTestChannel(LogChannelRequest) returns(stream LogEntry) {}
+    rpc CloseGTestChannel(DummyRequest) returns(DummyResponse) {}
+}
+
+message LogChannelRequest {
+    string logLevel = 2;
+}
+
+message LogEntry {
+    string message = 1;
+}
+
+message RegisterClientRequest {
+    string clientId = 1;
 }
 
 message CoverageAndResultsRequest {

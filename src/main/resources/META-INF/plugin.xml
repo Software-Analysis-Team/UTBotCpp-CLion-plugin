@@ -68,7 +68,7 @@
                 class="com.github.vol0n.utbotcppclion.actions.ConfigureProjectAction" text="Configure Project"
                 description="Configure project so that server can generate tests"/>
         <action id="com.github.vol0n.utbotcppclion.actions.AskServerToGenerateJson"
-                class="com.github.vol0n.utbotcppclion.actions.AskServerToGenerateJson" text="Try To Generate"
+                class="com.github.vol0n.utbotcppclion.actions.AskServerToGenerateJson" text="Try To Generate Json"
                 description="Ask server to generate missing json files"/>
         <action id="com.github.vol0n.utbotcppclion.actions.HeartBeatAction"
                 class="com.github.vol0n.utbotcppclion.actions.HeartBeatAction" text="HeartBeat"/>
