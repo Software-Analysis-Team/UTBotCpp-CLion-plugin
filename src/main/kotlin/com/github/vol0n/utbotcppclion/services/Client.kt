@@ -17,6 +17,7 @@ import testsgen.Util
 
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
+import kotlin.random.Random
 
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
@@ -64,7 +65,10 @@ class Client(val project: Project) {
     }
 
     private suspend fun setMetadata() {
-        val clientID = System.getenv("USER") ?: "someUserId"
+        fun createRandomSequence() = (1..RANDOM_SEQUENCE_LENGTH)
+                .map { Random.nextInt(0, RANDOM_SEQUENCE_MAX_VALUE).toString() }
+
+        val clientID = project.name + (System.getenv("USER") ?: "unknownUser") + createRandomSequence()
         try {
             stub.registerClient(Testgen.RegisterClientRequest.newBuilder().setClientId(clientID).build())
         } catch (e: Exception) {
@@ -264,6 +268,8 @@ class Client(val project: Project) {
     }
 
     companion object {
+        const val RANDOM_SEQUENCE_MAX_VALUE = 10
+        const val RANDOM_SEQUENCE_LENGTH = 5
         const val HEARTBEAT_INTERVAL: Long = 500L
         const val STREAM_HANDLING_TIMEOUT: Long = 5000L
     }
