@@ -50,18 +50,16 @@ class UTBotStatusBar : StatusBarWidget, StatusBarWidget.TextPresentation {
     override fun ID(): String = ID
 
     override fun install(statusbar: StatusBar) {
-        statusBar = statusbar
+        this.statusBar = statusbar
         statusbar.project?.messageBus?.connect()?.subscribe(UTBotConnectionChangedNotifier.CONNECTION_CHANGED_TOPIC,
-        object : UTBotConnectionChangedNotifier {
-            override fun onChange(oldStatus: ConnectionStatus, newStatus: ConnectionStatus) {
-                statusBar?.updateWidget(ID())
-            }
-        })
+            object : UTBotConnectionChangedNotifier {
+                override fun onChange(oldStatus: ConnectionStatus, newStatus: ConnectionStatus) {
+                    statusBar?.updateWidget(ID())
+                }
+            })
     }
 
-    override fun dispose() {
-        // Nothing
-    }
+    override fun dispose() {}
 
     override fun getTooltipText() = STATUS_BAR_DISPLAY_NAME
 
@@ -75,7 +73,8 @@ class UTBotStatusBar : StatusBarWidget, StatusBarWidget.TextPresentation {
     }
 
     override fun getText(): String =
-        "UTBot: " + (statusBar?.project?.service<Client>()?.getConnectionStatus()?.description ?: "not connected")
+        "UTBot: " + (statusBar?.project?.service<Client>()?.getConnectionStatus()?.description
+            ?: ConnectionStatus.BROKEN.description)
 
     override fun getAlignment(): Float = Component.CENTER_ALIGNMENT
 

@@ -41,7 +41,7 @@ class UTBotRequestTaskInfo(val titleText: String) : TaskInfo {
 
     override fun getCancelText() = "Cancelling Request"
 
-    override fun getCancelTooltipText() = "Cancelling request"
+    override fun getCancelTooltipText() = ""
 
     override fun isCancellable() = true
 }

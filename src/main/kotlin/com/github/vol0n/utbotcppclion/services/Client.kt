@@ -35,7 +35,7 @@ import kotlinx.coroutines.swing.Swing
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 
-class Client(val project: Project): Disposable {
+class Client(val project: Project) : Disposable {
     private var grpcStub = GrpcStarter.startClient().stub
     val grpcCoroutineScope: CoroutineScope
     private var connectionStatus = ConnectionStatus.INIT
@@ -271,26 +271,24 @@ class Client(val project: Project): Disposable {
         // start showing progress in status bar
         uiProgress.start()
         uiProgress.requestJob = grpcCoroutineScope.launch {
-            withTimeout(STREAM_HANDLING_TIMEOUT) {
-                this@handleWithProgress
-                    .catch { exception ->
-                        logger.info("In catch of handleWithProgress")
-                        logger.warn(exception.message)
+            this@handleWithProgress
+                .catch { exception ->
+                    logger.info("In catch of handleWithProgress")
+                    logger.warn(exception.message)
+                }
+                .collect {
+                    logger.info("In collect of handleWithProgress")
+                    val progress = progressAccessor(it)
+                    // when we receive last message from server stream
+                    if (progress == null || progress.completed) {
+                        onCompleted(it)
+                        return@collect
                     }
-                    .collect {
-                        logger.info("In collect of handleWithProgress")
-                        val progress = progressAccessor(it)
-                        // when we receive last message from server stream
-                        if (progress == null || progress.completed) {
-                            onCompleted(it)
-                            return@collect
-                        }
-                        // update progress in status bar
-                        uiProgress.fraction = progress.percent
-                        uiProgress.text = progress.message
-                        handleResponse(it)
-                    }
-            }
+                    // update progress in status bar
+                    uiProgress.fraction = progress.percent
+                    uiProgress.text = progress.message
+                    handleResponse(it)
+                }
             uiProgress.complete()
         }
     }
@@ -299,7 +297,6 @@ class Client(val project: Project): Disposable {
         const val RANDOM_SEQUENCE_MAX_VALUE = 10
         const val RANDOM_SEQUENCE_LENGTH = 5
         const val HEARTBEAT_INTERVAL: Long = 500L
-        const val STREAM_HANDLING_TIMEOUT: Long = 5000L
     }
 
     override fun dispose() {
