@@ -4,6 +4,13 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import testsgen.Testgen
 
+/**
+ * Intercepts incoming messages and logs them.
+ *
+ * Can be used to see what messages are sent to server for debugging.
+ * A listener is attached in [interceptCall], whose [onMessage] method is called
+ * when new message is received.
+ */
 class LogInterceptor : io.grpc.ServerInterceptor {
 
     companion object {
