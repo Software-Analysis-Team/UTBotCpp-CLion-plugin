@@ -14,18 +14,14 @@ fun relativize(from: String, to: String): String {
     return fromPath.relativize(toPath).toString()
 }
 
-suspend fun Flow<Testgen.TestsResponse>.handleTestsResponse() {
-    collect { testResponse ->
-        testResponse.testSourcesList.map { sourceCode ->
-            with(File(sourceCode.filePath)) {
-                parentFile?.mkdirs()
-                createNewFile()
-                writeText(sourceCode.code)
+fun createFileAndMakeDirs(filePath: String, text: String) {
+    with(File(filePath)) {
+        parentFile?.mkdirs()
+        createNewFile()
+        writeText(text)
 
-                ApplicationManager.getApplication().invokeLater {
-                    LocalFileSystem.getInstance()?.refreshAndFindFileByIoFile(this)
-                }
-            }
+        ApplicationManager.getApplication().invokeLater {
+            LocalFileSystem.getInstance()?.refreshAndFindFileByIoFile(this)
         }
     }
 }

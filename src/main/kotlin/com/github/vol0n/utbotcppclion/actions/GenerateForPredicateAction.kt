@@ -1,11 +1,8 @@
 package com.github.vol0n.utbotcppclion.actions
 
 import com.github.vol0n.utbotcppclion.actions.utils.client
-import com.github.vol0n.utbotcppclion.actions.utils.coroutinesScopeForGrpc
 import com.github.vol0n.utbotcppclion.actions.utils.getContainingFunction
 import com.github.vol0n.utbotcppclion.ui.GeneratorSettingsDialog
-import com.github.vol0n.utbotcppclion.utils.handleTestsResponse
-import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.ui.ComponentValidator
 import com.intellij.openapi.ui.ValidationInfo
@@ -22,11 +19,9 @@ import java.awt.event.KeyEvent
 import java.math.BigInteger
 import java.util.function.Supplier
 import kotlinx.coroutines.launch
-import testsgen.Testgen
 
-class GenerateForPredicateAction : AnAction() {
-
-    override fun update(e: AnActionEvent) {
+class GenerateForPredicateAction : GenerateTestsBaseAction() {
+    override fun updateIfServerAvailable(e: AnActionEvent) {
         val containingFun = getContainingFunction(e)
         e.presentation.isEnabledAndVisible = (containingFun != null)
     }
@@ -42,91 +37,94 @@ class GenerateForPredicateAction : AnAction() {
             .createPopup()
     }
 
+    fun createTrueFalsePopup(onChoose: (String) -> Unit) = createListPopup("Select bool value",
+        listOf("true", "false")) { onChoose(it) }
+
+    fun createTextFieldPopup(type: ValidationType, onChoose: (String) -> Unit): JBPopup {
+        val textField = ExtendableTextField()
+        textField.minimumSize = Dimension(100, textField.width)
+        textField.text = defaultReturnValues[type]
+        textField.selectAll()
+        val popup = JBPopupFactory.getInstance().createComponentPopupBuilder(textField, null)
+            .setFocusable(true)
+            .setRequestFocus(true)
+            .setTitle("Specify Return Value of type ${validationTypeName[type]}")
+            .createPopup()
+
+        var canClosePopup = true
+        ComponentValidator(popup).withValidator(Supplier<ValidationInfo?> {
+            val validationResult = returnValueValidators[type]?.let { it(textField.text) }
+            if (validationResult == null) {
+                canClosePopup = true
+                null
+            } else {
+                canClosePopup = false
+                ValidationInfo(validationResult, textField)
+            }
+        }).installOn(textField)
+
+        textField.document.addDocumentListener(object : DocumentAdapter() {
+            override fun textChanged(p0: DocumentEvent) {
+                ComponentValidator.getInstance(textField).ifPresent { v ->
+                    v.revalidate()
+                }
+            }
+        })
+
+        textField.addKeyListener(object : KeyAdapter() {
+            override fun keyPressed(e: KeyEvent) {
+                if (e.keyCode == KeyEvent.VK_ENTER) {
+                    if (canClosePopup) {
+                        popup.cancel()
+                        onChoose(textField.text)
+                    }
+                }
+            }
+        })
+
+        return popup
+    }
+
     override fun actionPerformed(e: AnActionEvent) {
 
-        fun sendPredicateToServer(validationType: ValidationType, returnValue: String, predicate: String) {
-            val predicateRequest = getPredicateRequestMessage(validationType, returnValue, predicate, e)
+        fun sendPredicateToServer(validationType: ValidationType, valueToCompare: String, comparisonOperator: String) {
+            val predicateRequest = getPredicateRequestMessage(validationType, valueToCompare, comparisonOperator, e)
             if (GeneratorSettingsDialog().showAndGet()) {
-                coroutinesScopeForGrpc.launch {
-                    client.generateForPredicate(predicateRequest).handleTestsResponse()
+                e.client.generateForPredicate(predicateRequest)
+            }
+        }
+
+        fun chooseComparisonOperator(type: ValidationType, proceedWithComparisonOperator: (comparisonOperator: String) -> Unit) {
+            when (type) {
+                ValidationType.STRING, ValidationType.BOOL -> {
+                    proceedWithComparisonOperator("==")
+                    return
+                }
+                else -> {
+                    createListPopup("Select Predicate", listOf("==", "<=", "=>", "<", ">")) { comparisonOperator ->
+                        proceedWithComparisonOperator(comparisonOperator)
+                    }.showInBestPositionFor(e.dataContext)
                 }
             }
         }
 
-        /**
-         * Shows user a popup to enter return value, if user enters the acceptable value, then
-         * it triggers [sendPredicateToServer].
-         */
-        fun askForReturnValue(validationType: ValidationType, predicate: String) {
-            val textField = ExtendableTextField()
-            textField.minimumSize = Dimension(100, textField.width)
-            textField.text = defaultReturnValues[validationType]
-            textField.selectAll()
-            val popup = JBPopupFactory.getInstance().createComponentPopupBuilder(textField, null)
-                .setFocusable(true)
-                .setRequestFocus(true)
-                .setTitle("Specify Return Value of type ${validationTypeName[validationType]}")
-                .createPopup()
-
-            var canClosePopup = true
-            ComponentValidator(popup).withValidator(Supplier<ValidationInfo?> {
-                val validationResult = returnValueValidators[validationType]?.let { it(textField.text) }
-                if (validationResult == null) {
-                    canClosePopup = true
-                    null
-                } else {
-                    canClosePopup = false
-                    ValidationInfo(validationResult, textField)
-                }
-            }).installOn(textField)
-
-            textField.document.addDocumentListener(object : DocumentAdapter() {
-                override fun textChanged(p0: DocumentEvent) {
-                    ComponentValidator.getInstance(textField).ifPresent { v ->
-                        v.revalidate()
-                    }
-                }
-            })
-
-            textField.addKeyListener(object : KeyAdapter() {
-                override fun keyPressed(e: KeyEvent) {
-                    if (e.keyCode == KeyEvent.VK_ENTER) {
-                        if (canClosePopup) {
-                            popup.cancel()
-                            sendPredicateToServer(validationType, textField.text, predicate)
-                        }
-                    }
-                }
-            })
+        fun chooseReturnValue(type: ValidationType, proceedWithValueToCompare: (valueToCompare: String) -> Unit) {
+            val popup = if (type == ValidationType.BOOL) {
+                createTrueFalsePopup { returnValue -> proceedWithValueToCompare(returnValue) }
+            } else {
+                createTextFieldPopup(type) { returnValue -> proceedWithValueToCompare(returnValue) }
+            }
             popup.showInBestPositionFor(e.dataContext)
         }
 
-        /**
-         * Shows user a popup to select predicate if needed, if user selects, it triggers [askForReturnValue].
-         * User can ignore the popup, then nothing happens.
-         */
-        fun askForPredicate(type: ValidationType) {
-            if (type == ValidationType.STRING) {
-                askForReturnValue(type, "==")
-                return
-            }
-            val predicatePopup = if (type == ValidationType.BOOL) {
-                createListPopup("Select Return Value", listOf("true", "false")) { chosenStr ->
-                    sendPredicateToServer(ValidationType.BOOL, chosenStr, "==")
-                }
-            } else {
-                createListPopup("Select Predicate", listOf("==", "<=", "=>", "<", ">")) { predicate ->
-                    askForReturnValue(type, predicate)
+        e.client.grpcCoroutineScope.launch {
+            val type = e.client.getFunctionReturnType(getFunctionRequestMessage(e)).validationType
+            chooseComparisonOperator(type) { comparisonOperator ->
+                chooseReturnValue(type) { valueToCompare ->
+                    sendPredicateToServer(type, valueToCompare, comparisonOperator)
                 }
             }
-            predicatePopup.showInBestPositionFor(e.dataContext)
         }
-
-        coroutinesScopeForGrpc.launch {
-            val type = client.getFunctionReturnType(getFunctionRequestMessage(e)).validationType
-            askForPredicate(type)
-        }
-
     }
 
     companion object {

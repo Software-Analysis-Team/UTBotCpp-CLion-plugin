@@ -4,12 +4,12 @@ import com.github.vol0n.utbotcppclion.actions.utils.client
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
 
-class GenerateForFolderAction : UTBotTestsResponseAction() {
-    override val funToGetTestResponse = { e: AnActionEvent ->
-        client.generateForFolder(getFolderRequestMessage(e))
+class GenerateForFolderAction : GenerateTestsBaseAction() {
+    override fun actionPerformed(e: AnActionEvent) {
+        e.client.generateForFolder(getFolderRequestMessage(e))
     }
 
-    override fun update(e: AnActionEvent) {
+    override fun updateIfServerAvailable(e: AnActionEvent) {
         if (e.project?.basePath == null) {
             e.presentation.isEnabledAndVisible = false
             return

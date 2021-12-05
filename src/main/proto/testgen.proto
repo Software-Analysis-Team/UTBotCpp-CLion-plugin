@@ -14,11 +14,115 @@ service TestsGenService {
     rpc GenerateFolderTests(FolderRequest) returns(stream TestsResponse) {}
     rpc GenerateSnippetTests(SnippetRequest) returns(stream TestsResponse) {}
     rpc GenerateAssertionFailTests(AssertionRequest) returns(stream TestsResponse) {}
+    rpc ConfigureProject(ProjectConfigRequest) returns(stream ProjectConfigResponse) {}
+    rpc Handshake(DummyRequest) returns(DummyResponse) {}
+    rpc Heartbeat(DummyRequest) returns(HeartbeatResponse) {}
+    rpc CreateTestsCoverageAndResult(CoverageAndResultsRequest) returns(stream CoverageAndResultsResponse) {}
+    rpc RegisterClient(RegisterClientRequest) returns(DummyResponse) {}
+    rpc OpenGTestChannel(LogChannelRequest) returns(stream LogEntry) {}
+    rpc CloseGTestChannel(DummyRequest) returns(DummyResponse) {}
+}
+
+message LogChannelRequest {
+    string logLevel = 2;
+}
+
+message LogEntry {
+    string message = 1;
+}
+
+message RegisterClientRequest {
+    string clientId = 1;
+}
+
+message CoverageAndResultsRequest {
+    ProjectContext projectContext = 1;
+    SettingsContext settingsContext = 2;
+    TestFilter testFilter = 3;
+    bool coverage = 4;
+}
+
+message FileCoverageSimplified {
+    string filePath = 1;
+    repeated SourceRange coveredRanges = 2;
+    repeated SourceRange uncoveredRanges = 3;
+}
+
+message SourceRange {
+    SourcePosition start = 1;
+    SourcePosition end = 2;
+}
+
+message SourcePosition {
+    uint32 line = 1;
+    uint32 character = 2;
+}
+
+message TestFilter {
+    string testFilePath = 1;
+    string testName = 2;
+    string testSuite = 3;
+}
+
+message CoverageAndResultsResponse {
+    repeated TestResultObject testRunResults = 1;
+    repeated FileCoverageSimplified coverages = 2;
+    Progress progress = 3;
+    string errorMessage = 4;
+}
+
+message TestResultObject {
+    string testFilePath = 1;
+    string testname = 2;
+    TestStatus status = 3;
+    string output = 4;
+}
+
+enum TestStatus {
+    TEST_PASSED = 0;
+    TEST_FAILED = 1;
+    TEST_DEATH = 2;
+    TEST_INTERRUPTED = 3;
+}
+
+message DummyRequest {}
+
+message DummyResponse {}
+
+message HeartbeatResponse {
+    bool linked = 1;
 }
 
 message FolderRequest {
     ProjectRequest projectRequest = 1;
     string folderPath = 2;
+}
+
+enum ConfigMode {
+    CHECK = 0;
+    CREATE_BUILD_DIR = 1;
+    GENERATE_JSON_FILES = 2;
+}
+
+enum ProjectConfigStatus {
+    IS_OK = 0;
+    BUILD_DIR_NOT_FOUND = 1;
+    COMPILE_COMMANDS_JSON_NOT_FOUND = 2;
+    LINK_COMMANDS_JSON_NOT_FOUND = 3;
+    BUILD_DIR_CREATION_FAILED = 4;
+    RUN_JSON_GENERATION_FAILED = 5;
+}
+
+message ProjectConfigRequest {
+    ProjectContext projectContext = 1;
+    ConfigMode configMode = 2;
+    string cmakeOptions = 3;
+}
+
+message ProjectConfigResponse {
+    ProjectConfigStatus type = 1;
+    string message = 2;
+    Progress progress = 3;
 }
 
 message ProjectContext {

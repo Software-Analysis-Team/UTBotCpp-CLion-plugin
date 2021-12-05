@@ -8,6 +8,7 @@ import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
+import com.jetbrains.cidr.cpp.cmake.workspace.CMakeWorkspace
 import testsgen.Testgen
 import testsgen.Util
 
@@ -157,4 +158,19 @@ fun getPredicateRequestMessage(
         .setLineRequest(getLineRequestMessage(e))
         .setPredicateInfo(predicateInfo)
         .build()
+}
+
+fun getProjectConfigRequestMessage(project: Project, configMode: Testgen.ConfigMode): Testgen.ProjectConfigRequest {
+    LOG.info("getProjectConfigure")
+    return Testgen.ProjectConfigRequest.newBuilder()
+        .setProjectContext(getProjectContextMessage(project.service(), project))
+        .setCmakeOptions(getCmakeOptions(project) ?: "")
+        .setConfigMode(configMode)
+        .build()
+}
+
+fun getCmakeOptions(project: Project): String? {
+    return CMakeWorkspace.getInstance(project).profileInfos.find {
+        it.profile.enabled
+    }?.profile?.generationOptions
 }
