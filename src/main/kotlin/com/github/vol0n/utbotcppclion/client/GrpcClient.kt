@@ -1,12 +1,16 @@
 package com.github.vol0n.utbotcppclion.client
 
 import com.charleskorn.kaml.Yaml
+import com.intellij.openapi.diagnostic.Logger
+
 import io.grpc.ManagedChannel
 import io.grpc.ManagedChannelBuilder
+import testsgen.TestsGenServiceGrpcKt
+
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
-import testsgen.TestsGenServiceGrpcKt
+
 import java.io.Closeable
 import java.util.concurrent.TimeUnit
 
@@ -31,6 +35,7 @@ object GrpcStarter {
     val port: Int
     private val serverName: String
     private val defaultConfig = GrpcConfig(50051, "localhost")
+    private val logger = Logger.getInstance(this::class.java)
 
     init {
         val configString = this::class.java.getResource("/config.yaml")?.readText()
@@ -44,7 +49,7 @@ object GrpcStarter {
     }
 
     fun startClient(): GrpcClient {
-        println("Starting client on serverName: $serverName, port: $port")
+        logger.info("Connecting to server on host: $serverName, port: $port")
         val channel = ManagedChannelBuilder.forAddress(serverName, port).usePlaintext().build()
 
         return GrpcClient(channel)

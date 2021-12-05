@@ -4,7 +4,7 @@ import com.github.vol0n.utbotcppclion.actions.utils.client
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
 
-class GenerateForFileAction : UTBotTestsResponseAction() {
+class GenerateForFileAction : GenerateTestsBaseAction() {
     override fun actionPerformed(e: AnActionEvent) {
         e.client.generateForFile(getFileRequestMessage(e))
     }

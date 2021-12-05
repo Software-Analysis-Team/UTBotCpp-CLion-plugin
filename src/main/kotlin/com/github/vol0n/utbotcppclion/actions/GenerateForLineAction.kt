@@ -4,7 +4,7 @@ import com.github.vol0n.utbotcppclion.actions.utils.client
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
 
-class GenerateForLineAction : UTBotTestsResponseAction() {
+class GenerateForLineAction : GenerateTestsBaseAction() {
     override fun updateIfServerAvailable(e: AnActionEvent) {
         val project = e.project
         val editor = e.getData(CommonDataKeys.EDITOR)

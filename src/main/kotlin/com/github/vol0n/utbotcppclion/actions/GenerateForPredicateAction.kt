@@ -20,7 +20,7 @@ import java.math.BigInteger
 import java.util.function.Supplier
 import kotlinx.coroutines.launch
 
-class GenerateForPredicateAction : UTBotTestsResponseAction() {
+class GenerateForPredicateAction : GenerateTestsBaseAction() {
     override fun updateIfServerAvailable(e: AnActionEvent) {
         val containingFun = getContainingFunction(e)
         e.presentation.isEnabledAndVisible = (containingFun != null)
@@ -87,41 +87,41 @@ class GenerateForPredicateAction : UTBotTestsResponseAction() {
 
     override fun actionPerformed(e: AnActionEvent) {
 
-        fun sendPredicateToServer(validationType: ValidationType, returnValue: String, predicate: String) {
-            val predicateRequest = getPredicateRequestMessage(validationType, returnValue, predicate, e)
+        fun sendPredicateToServer(validationType: ValidationType, valueToCompare: String, comparisonOperator: String) {
+            val predicateRequest = getPredicateRequestMessage(validationType, valueToCompare, comparisonOperator, e)
             if (GeneratorSettingsDialog().showAndGet()) {
                 e.client.generateForPredicate(predicateRequest)
             }
         }
 
-        fun chooseCondition(type: ValidationType, proceedWithPredicate: (predicate: String) -> Unit) {
+        fun chooseComparisonOperator(type: ValidationType, proceedWithComparisonOperator: (comparisonOperator: String) -> Unit) {
             when (type) {
                 ValidationType.STRING, ValidationType.BOOL -> {
-                    proceedWithPredicate("==")
+                    proceedWithComparisonOperator("==")
                     return
                 }
                 else -> {
-                    createListPopup("Select Predicate", listOf("==", "<=", "=>", "<", ">")) { predicate ->
-                        proceedWithPredicate(predicate)
+                    createListPopup("Select Predicate", listOf("==", "<=", "=>", "<", ">")) { comparisonOperator ->
+                        proceedWithComparisonOperator(comparisonOperator)
                     }.showInBestPositionFor(e.dataContext)
                 }
             }
         }
 
-        fun chooseReturnValue(type: ValidationType, proceedWithReturnValue: (returnValue: String) -> Unit) {
+        fun chooseReturnValue(type: ValidationType, proceedWithValueToCompare: (valueToCompare: String) -> Unit) {
             val popup = if (type == ValidationType.BOOL) {
-                createTrueFalsePopup { returnValue -> proceedWithReturnValue(returnValue) }
+                createTrueFalsePopup { returnValue -> proceedWithValueToCompare(returnValue) }
             } else {
-                createTextFieldPopup(type) { returnValue -> proceedWithReturnValue(returnValue) }
+                createTextFieldPopup(type) { returnValue -> proceedWithValueToCompare(returnValue) }
             }
             popup.showInBestPositionFor(e.dataContext)
         }
 
         e.client.grpcCoroutineScope.launch {
             val type = e.client.getFunctionReturnType(getFunctionRequestMessage(e)).validationType
-            chooseCondition(type) { predicate ->
-                chooseReturnValue(type) { returnValue ->
-                    sendPredicateToServer(type, returnValue, predicate)
+            chooseComparisonOperator(type) { comparisonOperator ->
+                chooseReturnValue(type) { valueToCompare ->
+                    sendPredicateToServer(type, valueToCompare, comparisonOperator)
                 }
             }
         }

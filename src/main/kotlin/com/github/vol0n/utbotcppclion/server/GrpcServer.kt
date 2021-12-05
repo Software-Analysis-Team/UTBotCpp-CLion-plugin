@@ -1,75 +1,27 @@
 package com.github.vol0n.utbotcppclion.server
 
 import com.github.vol0n.utbotcppclion.client.GrpcStarter
-import io.grpc.Attributes
-import io.grpc.ForwardingServerCall
-import io.grpc.ForwardingServerCallListener
-import io.grpc.Metadata
-import io.grpc.Server
-import io.grpc.ServerBuilder
-import io.grpc.ServerCall
-import io.grpc.ServerCallHandler
-import io.grpc.ServerInterceptor
-import io.grpc.Status
-import kotlin.random.Random
-import kotlin.reflect.KCallable
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
+
 import testsgen.Testgen
 import testsgen.TestsGenServiceGrpcKt
 import testsgen.Util
+
+import kotlin.random.Random
+import kotlin.reflect.KCallable
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+
 import java.io.File
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 import java.nio.file.Files
 import java.nio.file.Paths
-
-class LogInterceptor : ServerInterceptor {
-
-    companion object {
-        val LOG: Logger = LoggerFactory.getLogger(LogInterceptor::class.java)
-    }
-
-    override fun <ReqT : Any?, RespT : Any?> interceptCall(
-        call: ServerCall<ReqT, RespT>,
-        headers: io.grpc.Metadata,
-        next: ServerCallHandler<ReqT, RespT>
-    ): ServerCall.Listener<ReqT> {
-        val logServerCall = LogServerCall(call)
-        return object : ForwardingServerCallListener.SimpleForwardingServerCallListener<ReqT>(
-            next.startCall(
-                logServerCall,
-                headers
-            )
-        ) {
-            override fun onMessage(message: ReqT) {
-                if (message !is Testgen.DummyRequest)
-                    LOG.info("[IN] $message")
-                super.onMessage(message)
-            }
-        }
-    }
-
-    private class LogServerCall<ReqT, RestT>(
-        delegate: ServerCall<ReqT, RestT>
-    ) : ForwardingServerCall.SimpleForwardingServerCall<ReqT, RestT>(delegate) {
-        override fun close(status: Status, trailers: Metadata?) {
-            if (!status.isOk) {
-                LOG.warn("[OUT] code=${status.code}, description=${status.description}, cause=${status.cause.toString()}")
-            }
-            super.close(status, trailers)
-        }
-    }
-}
 
 class Server(private val port: Int) {
 
     companion object {
-        private val LOG: Logger = LoggerFactory.getLogger(Server::class.java)
+        private val log: org.slf4j.Logger = org.slf4j.LoggerFactory.getLogger(Server::class.java)
     }
 
-    private val server: Server = ServerBuilder
+    private val server: io.grpc.Server = io.grpc.ServerBuilder
         .forPort(port)
         .intercept(LogInterceptor())
         .addService(TestGenService())
@@ -77,12 +29,12 @@ class Server(private val port: Int) {
 
     fun start() {
         server.start()
-        println("Server started, listening on $port")
+        log.info("Server started, listening on $port")
         Runtime.getRuntime().addShutdownHook(
             Thread {
-                println("*** shutting down gRPC server since JVM is shutting down")
+                log.info("*** shutting down gRPC server since JVM is shutting down")
                 this@Server.stop()
-                println("*** server shut down")
+                log.info("*** server shut down")
             }
         )
     }
@@ -99,7 +51,7 @@ class Server(private val port: Int) {
     private class TestGenService : TestsGenServiceGrpcKt.TestsGenServiceCoroutineImplBase() {
 
         fun log(function: KCallable<*>, message: String) {
-            println("[${function.name}] $message")
+            log.info("[${function.name}] $message")
         }
 
         fun logStarted(function: KCallable<*>) = log(function, "started")
@@ -238,29 +190,17 @@ class Server(private val port: Int) {
 
         override fun configureProject(request: Testgen.ProjectConfigRequest): Flow<Testgen.ProjectConfigResponse> {
             return flow {
-                val messages = listOf("one", "two", "Three", "four", "five")
-                repeat(5) {
-                    println("Before emit in configureProject!")
-                    emit(
-                        Testgen.ProjectConfigResponse.newBuilder()
-                            .setProgress(
-                                Util.Progress.newBuilder()
-                                    .setMessage(messages[it])
-                                    .setPercent(it.toDouble() / 4)
-                                    .setCompleted(it == 4)
-                                    .build()
-                            )
-                            .setMessage("Dummy message")
-                            .setType(
-                                Testgen.ProjectConfigStatus.values().let { arr ->
-                                    arr.get(Random.nextInt(arr.size))
-                                }
-                            )
-                            .build()
-                    )
-                    println("After emit in configureProject")
-                    delay(1000L)
-                }
+                log.info("Before emit in configureProject!")
+                emit(
+                    Testgen.ProjectConfigResponse.newBuilder()
+                        .setType(
+                            Testgen.ProjectConfigStatus.values().let { arr ->
+                                arr.get(Random.nextInt(arr.size))
+                            }
+                        )
+                        .build()
+                )
+                log.info("After emit in configureProject")
             }
         }
     }

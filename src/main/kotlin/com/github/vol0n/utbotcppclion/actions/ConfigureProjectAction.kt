@@ -1,16 +1,19 @@
 package com.github.vol0n.utbotcppclion.actions
 
+import com.github.vol0n.utbotcppclion.UTBot
 import com.github.vol0n.utbotcppclion.actions.utils.client
-import com.intellij.openapi.actionSystem.AnAction
+import com.intellij.notification.Notification
+import com.intellij.notification.NotificationAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 
-class ConfigureProjectAction : AnAction() {
-    init {
-        templatePresentation.text = "Ask Server To Configure Project"
+class ConfigureProjectAction : NotificationAction(UTBot.message("projectConfigure.configure")) {
+    override fun actionPerformed(e: AnActionEvent, n: Notification) {
+        actionPerformed(e)
     }
 
     override fun actionPerformed(e: AnActionEvent) {
         e.client.configureProject()
+        super.actionPerformed(e)
     }
 
     override fun update(e: AnActionEvent) {

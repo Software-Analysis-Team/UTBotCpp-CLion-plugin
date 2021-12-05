@@ -1,8 +1,7 @@
 package com.github.vol0n.utbotcppclion.ui
 
-import com.github.vol0n.utbotcppclion.actions.AskServerToGenerateJson
+import com.github.vol0n.utbotcppclion.actions.AskServerToGenerateJsonForProjectConfiguration
 import com.github.vol0n.utbotcppclion.actions.ConfigureProjectAction
-import com.github.vol0n.utbotcppclion.actions.HeartBeatAction
 import com.github.vol0n.utbotcppclion.messaging.ConnectionStatus
 import com.github.vol0n.utbotcppclion.messaging.UTBotConnectionChangedNotifier
 import com.github.vol0n.utbotcppclion.services.Client
@@ -102,9 +101,7 @@ object StatusBarActionsPopup {
 
         actionGroup.add(ConfigureProjectAction())
         actionGroup.addSeparator()
-        actionGroup.add(HeartBeatAction())
-        actionGroup.addSeparator()
-        actionGroup.add(AskServerToGenerateJson())
+        actionGroup.add(AskServerToGenerateJsonForProjectConfiguration())
         return actionGroup
     }
 }

@@ -6,13 +6,13 @@ import com.intellij.notification.Notification
 import com.intellij.notification.NotificationAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 
-class AskServerToGenerateBuildDir: NotificationAction(UTBot.message("projectConfigure.generate.buildDir")) {
+class AskServerToGenerateJsonForProjectConfiguration :
+    NotificationAction(UTBot.message("projectConfigure.generate.json")) {
     override fun actionPerformed(e: AnActionEvent, n: Notification) {
         actionPerformed(e)
     }
 
     override fun actionPerformed(e: AnActionEvent) {
-        e.client.createBuildDir()
-        super.actionPerformed(e)
+        e.client.generateJSon()
     }
 }

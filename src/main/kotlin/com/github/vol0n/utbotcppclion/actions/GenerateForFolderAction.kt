@@ -4,7 +4,7 @@ import com.github.vol0n.utbotcppclion.actions.utils.client
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
 
-class GenerateForFolderAction : UTBotTestsResponseAction() {
+class GenerateForFolderAction : GenerateTestsBaseAction() {
     override fun actionPerformed(e: AnActionEvent) {
         e.client.generateForFolder(getFolderRequestMessage(e))
     }

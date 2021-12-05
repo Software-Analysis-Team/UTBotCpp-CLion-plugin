@@ -4,7 +4,7 @@ import com.github.vol0n.utbotcppclion.actions.utils.client
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
 
-class GenerateForAssertionAction : UTBotTestsResponseAction() {
+class GenerateForAssertionAction : GenerateTestsBaseAction() {
     override fun actionPerformed(e: AnActionEvent) {
         e.client.generateForAssertion(getAssertionRequestMessage(e))
     }

@@ -5,7 +5,7 @@ import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.components.service
 
-abstract class UTBotTestsResponseAction : AnAction() {
+abstract class GenerateTestsBaseAction : AnAction() {
     override fun update(e: AnActionEvent) {
         if (e.project?.service<Client>()?.isServerAvailable() == true) {
             updateIfServerAvailable(e)

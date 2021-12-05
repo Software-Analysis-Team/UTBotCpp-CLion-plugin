@@ -1,7 +1,7 @@
 package com.github.vol0n.utbotcppclion.services
 
 import com.github.vol0n.utbotcppclion.actions.AskServerToGenerateBuildDir
-import com.github.vol0n.utbotcppclion.actions.AskServerToGenerateJson
+import com.github.vol0n.utbotcppclion.actions.AskServerToGenerateJsonForProjectConfiguration
 import com.github.vol0n.utbotcppclion.actions.getProjectConfigRequestMessage
 import com.github.vol0n.utbotcppclion.actions.utils.notifyError
 import com.github.vol0n.utbotcppclion.actions.utils.notifyInfo
@@ -11,11 +11,13 @@ import com.github.vol0n.utbotcppclion.messaging.ConnectionStatus
 import com.github.vol0n.utbotcppclion.messaging.UTBotConnectionChangedNotifier
 import com.github.vol0n.utbotcppclion.ui.UTBotRequestProgressIndicator
 import com.github.vol0n.utbotcppclion.utils.createFileAndMakeDirs
+
+import testsgen.Testgen
+import testsgen.Util
+
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
-import io.grpc.Metadata
-import io.grpc.Metadata.ASCII_STRING_MARSHALLER
-import io.grpc.stub.MetadataUtils
+
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -28,9 +30,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.swing.Swing
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
-import testsgen.Testgen
-import testsgen.Util
-import java.net.ConnectException
 
 class Client(val project: Project) {
     private var stub = GrpcStarter.startClient().stub
@@ -40,7 +39,7 @@ class Client(val project: Project) {
         project.messageBus.syncPublisher(UTBotConnectionChangedNotifier.CONNECTION_CHANGED_TOPIC)
     private var heartBeatJob: Job? = null
     private val logger = Logger.getInstance(this::class.java)
-    private val metadata: io.grpc.Metadata = Metadata()
+    private val metadata: io.grpc.Metadata = io.grpc.Metadata()
 
     init {
         val handler = CoroutineExceptionHandler { _, exception ->
@@ -64,22 +63,22 @@ class Client(val project: Project) {
         }
     }
 
-    suspend fun setMetadata() {
+    private suspend fun setMetadata() {
         val clientID = System.getenv("USER") ?: "someUserId"
         try {
             stub.registerClient(Testgen.RegisterClientRequest.newBuilder().setClientId(clientID).build())
         } catch (e: Exception) {
             logger.warn("Setting metadata failed: ${e.message}")
         }
-        metadata.put(Metadata.Key.of("clientid", ASCII_STRING_MARSHALLER), clientID)
-        stub = MetadataUtils.attachHeaders(stub, metadata)
+        metadata.put(io.grpc.Metadata.Key.of("clientid", io.grpc.Metadata.ASCII_STRING_MARSHALLER), clientID)
+        stub = io.grpc.stub.MetadataUtils.attachHeaders(stub, metadata)
     }
 
     fun periodicHeartBeat() {
         if (heartBeatJob != null) {
             heartBeatJob?.cancel()
         }
-        logger.info("Start heartbeating the server!")
+        logger.info("Started heartbeating the server!")
         heartBeatJob = grpcCoroutineScope.launch {
             setMetadata()
             while (true) {
@@ -89,7 +88,7 @@ class Client(val project: Project) {
         }
     }
 
-    fun handleTestResponse(response: Testgen.TestsResponse) {
+    private fun handleTestResponse(response: Testgen.TestsResponse) {
         response.testSourcesList.map { sourceCode ->
             createFileAndMakeDirs(sourceCode.filePath, sourceCode.code)
         }
@@ -157,7 +156,7 @@ class Client(val project: Project) {
                         if (response.type == Testgen.ProjectConfigStatus.LINK_COMMANDS_JSON_NOT_FOUND) "link_commands.json" else "compile_commands.json"
                     notifyError(
                         "Project is not configured properly: $missingFileName is missing in the build folder.",
-                        project, AskServerToGenerateJson()
+                        project, AskServerToGenerateJsonForProjectConfiguration()
                     )
                 }
                 else -> notifyUnknownResponse(response, project)
@@ -214,7 +213,7 @@ class Client(val project: Project) {
         )
     }
 
-    suspend fun heartBeat() {
+    private suspend fun heartBeat() {
         try {
             stub.heartbeat(Testgen.DummyRequest.newBuilder().build())
             connectionChangedPublisher.onChange(connectionStatus, ConnectionStatus.CONNECTED)
@@ -226,7 +225,7 @@ class Client(val project: Project) {
         }
     }
 
-    fun Flow<Testgen.TestsResponse>.handleWithProgress(progressName: String = "Generating Tests") {
+    private fun Flow<Testgen.TestsResponse>.handleWithProgress(progressName: String = "Generating Tests") {
         this.handleWithProgress(
             progressName, Testgen.TestsResponse::getProgress,
             handleResponse = this@Client::handleTestResponse
