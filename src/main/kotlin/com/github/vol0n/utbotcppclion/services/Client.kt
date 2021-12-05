@@ -11,6 +11,7 @@ import com.github.vol0n.utbotcppclion.messaging.ConnectionStatus
 import com.github.vol0n.utbotcppclion.messaging.UTBotConnectionChangedNotifier
 import com.github.vol0n.utbotcppclion.ui.UTBotRequestProgressIndicator
 import com.github.vol0n.utbotcppclion.utils.createFileAndMakeDirs
+import com.intellij.openapi.Disposable
 
 import testsgen.Testgen
 import testsgen.Util
@@ -23,17 +24,19 @@ import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.swing.Swing
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 
-class Client(val project: Project) {
-    private var stub = GrpcStarter.startClient().stub
+class Client(val project: Project): Disposable {
+    private var grpcStub = GrpcStarter.startClient().stub
     val grpcCoroutineScope: CoroutineScope
     private var connectionStatus = ConnectionStatus.INIT
     private val connectionChangedPublisher =
@@ -57,7 +60,7 @@ class Client(val project: Project) {
     fun doHandShake() {
         grpcCoroutineScope.launch {
             try {
-                stub.handshake(Testgen.DummyRequest.newBuilder().build())
+                grpcStub.handshake(Testgen.DummyRequest.newBuilder().build())
             } catch (e: Exception) {
                 logger.warn("HandShake failed with the following error: ${e.message}")
             }
@@ -66,16 +69,16 @@ class Client(val project: Project) {
 
     private suspend fun setMetadata() {
         fun createRandomSequence() = (1..RANDOM_SEQUENCE_LENGTH)
-                .map { Random.nextInt(0, RANDOM_SEQUENCE_MAX_VALUE).toString() }
+            .map { Random.nextInt(0, RANDOM_SEQUENCE_MAX_VALUE).toString() }
 
         val clientID = project.name + (System.getenv("USER") ?: "unknownUser") + createRandomSequence()
         try {
-            stub.registerClient(Testgen.RegisterClientRequest.newBuilder().setClientId(clientID).build())
+            grpcStub.registerClient(Testgen.RegisterClientRequest.newBuilder().setClientId(clientID).build())
         } catch (e: Exception) {
             logger.warn("Setting metadata failed: ${e.message}")
         }
         metadata.put(io.grpc.Metadata.Key.of("clientid", io.grpc.Metadata.ASCII_STRING_MARSHALLER), clientID)
-        stub = io.grpc.stub.MetadataUtils.attachHeaders(stub, metadata)
+        grpcStub = io.grpc.stub.MetadataUtils.attachHeaders(grpcStub, metadata)
     }
 
     fun periodicHeartBeat() {
@@ -85,10 +88,11 @@ class Client(val project: Project) {
         logger.info("Started heartbeating the server!")
         heartBeatJob = grpcCoroutineScope.launch {
             setMetadata()
-            while (true) {
-                heartBeat()
+            while (isActive) {
+                heartBeatOnce()
                 delay(HEARTBEAT_INTERVAL)
             }
+            logger.info("stopped heartBeating the server!")
         }
     }
 
@@ -103,46 +107,59 @@ class Client(val project: Project) {
 
     fun generateForFile(
         request: Testgen.FileRequest
-    ) = stub.generateFileTests(request).handleWithProgress()
+    ) {
+        logger.info("in generateForFile")
+        grpcStub.generateFileTests(request).handleWithProgress()
+    }
 
     fun generateForLine(
         request: Testgen.LineRequest
-    ) = stub.generateLineTests(request).handleWithProgress()
+    ) = grpcStub.generateLineTests(request).handleWithProgress()
 
     fun generateForPredicate(
         request: Testgen.PredicateRequest
-    ) = stub.generatePredicateTests(request).handleWithProgress()
+    ) = grpcStub.generatePredicateTests(request).handleWithProgress()
 
     fun generateForFunction(
         request: Testgen.FunctionRequest
-    ) = stub.generateFunctionTests(request).handleWithProgress()
+    ) {
+        logger.info("in generateForFunction")
+        grpcStub.generateFunctionTests(request).handleWithProgress()
+    }
 
     fun generateForClass(
         request: Testgen.ClassRequest
-    ) = stub.generateClassTests(request).handleWithProgress()
+    ) = grpcStub.generateClassTests(request).handleWithProgress()
 
     fun generateForFolder(
         request: Testgen.FolderRequest
-    ) = stub.generateFolderTests(request).handleWithProgress()
+    ) = grpcStub.generateFolderTests(request).handleWithProgress()
 
     fun generateForSnippet(
         request: Testgen.SnippetRequest
-    ) = stub.generateSnippetTests(request).handleWithProgress()
+    ) = grpcStub.generateSnippetTests(request).handleWithProgress()
 
     fun generateForAssertion(
         request: Testgen.AssertionRequest
-    ) = stub.generateAssertionFailTests(request).handleWithProgress()
+    ) = grpcStub.generateAssertionFailTests(request).handleWithProgress()
 
     suspend fun getFunctionReturnType(
         request: Testgen.FunctionRequest
-    ): Testgen.FunctionTypeResponse = withContext(Dispatchers.IO) { stub.getFunctionReturnType(request) }
+    ): Testgen.FunctionTypeResponse = withContext(Dispatchers.IO) {
+        logger.info("in getFunctionReturnType")
+        grpcStub.getFunctionReturnType(request)
+    }
 
-    suspend fun handShake(): Testgen.DummyResponse = stub.handshake(Testgen.DummyRequest.newBuilder().build())
+    suspend fun handShake(): Testgen.DummyResponse {
+        logger.info("in handShake()")
+        return grpcStub.handshake(Testgen.DummyRequest.newBuilder().build())
+    }
 
     private fun progressOrNull(response: Testgen.ProjectConfigResponse): Util.Progress? =
         if (response.hasProgress()) response.progress else null
 
     fun configureProject() {
+        logger.info("In cofigureProject")
         fun handleProjectConfigResponse(response: Testgen.ProjectConfigResponse) {
             when (response.type) {
                 Testgen.ProjectConfigStatus.IS_OK -> {
@@ -168,14 +185,16 @@ class Client(val project: Project) {
         }
 
         val request = getProjectConfigRequestMessage(project, Testgen.ConfigMode.CHECK)
-        stub.configureProject(request).handleWithProgress(
+        grpcStub.configureProject(request).handleWithProgress(
             "Configuring project",
             ::progressOrNull,
             ::handleProjectConfigResponse
         )
+        logger.info("Finished configureProject")
     }
 
     fun createBuildDir() {
+        logger.info("In createBuildDir")
         fun handleBuildDirCreation(serverResponse: Testgen.ProjectConfigResponse) {
             when (serverResponse.type) {
                 Testgen.ProjectConfigStatus.IS_OK -> {
@@ -190,14 +209,16 @@ class Client(val project: Project) {
         }
 
         val request = getProjectConfigRequestMessage(project, Testgen.ConfigMode.CREATE_BUILD_DIR)
-        stub.configureProject(request).handleWithProgress(
+        grpcStub.configureProject(request).handleWithProgress(
             "Ask server to create build dir",
             ::progressOrNull,
             ::handleBuildDirCreation
         )
+        logger.info("Finished createBuildDir()")
     }
 
     fun generateJSon() {
+        logger.info("In generateJson()")
         fun handleJSONGeneration(serverResponse: Testgen.ProjectConfigResponse) {
             when (serverResponse.type) {
                 Testgen.ProjectConfigStatus.IS_OK -> notifyInfo("Successfully configured project!", project)
@@ -210,16 +231,18 @@ class Client(val project: Project) {
         }
 
         val request = getProjectConfigRequestMessage(project, Testgen.ConfigMode.GENERATE_JSON_FILES)
-        stub.configureProject(request).handleWithProgress(
+        grpcStub.configureProject(request).handleWithProgress(
             "Ask server to generate json",
             ::progressOrNull,
             ::handleJSONGeneration,
         )
+        logger.info("Finished generateJSon()")
     }
 
-    private suspend fun heartBeat() {
+    private suspend fun heartBeatOnce() {
         try {
-            stub.heartbeat(Testgen.DummyRequest.newBuilder().build())
+            logger.debug("in heartBeatOnce")
+            grpcStub.heartbeat(Testgen.DummyRequest.newBuilder().build())
             connectionChangedPublisher.onChange(connectionStatus, ConnectionStatus.CONNECTED)
             connectionStatus = ConnectionStatus.CONNECTED
         } catch (e: Exception) {
@@ -243,14 +266,19 @@ class Client(val project: Project) {
         onCompleted: (T) -> Unit = {},
         handleResponse: (T) -> Unit = {}
     ) {
+        logger.info("In handleWithProgress")
         val uiProgress = UTBotRequestProgressIndicator(progressName)
         // start showing progress in status bar
         uiProgress.start()
         uiProgress.requestJob = grpcCoroutineScope.launch {
             withTimeout(STREAM_HANDLING_TIMEOUT) {
                 this@handleWithProgress
-                    .catch { exception -> logger.warn(exception.message) }
+                    .catch { exception ->
+                        logger.info("In catch of handleWithProgress")
+                        logger.warn(exception.message)
+                    }
                     .collect {
+                        logger.info("In collect of handleWithProgress")
                         val progress = progressAccessor(it)
                         // when we receive last message from server stream
                         if (progress == null || progress.completed) {
@@ -272,5 +300,9 @@ class Client(val project: Project) {
         const val RANDOM_SEQUENCE_LENGTH = 5
         const val HEARTBEAT_INTERVAL: Long = 500L
         const val STREAM_HANDLING_TIMEOUT: Long = 5000L
+    }
+
+    override fun dispose() {
+        grpcCoroutineScope.cancel()
     }
 }

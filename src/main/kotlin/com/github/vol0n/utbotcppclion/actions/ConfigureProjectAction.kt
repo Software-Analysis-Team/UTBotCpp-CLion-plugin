@@ -13,7 +13,6 @@ class ConfigureProjectAction : NotificationAction(UTBot.message("projectConfigur
 
     override fun actionPerformed(e: AnActionEvent) {
         e.client.configureProject()
-        super.actionPerformed(e)
     }
 
     override fun update(e: AnActionEvent) {

@@ -1,6 +1,7 @@
 package com.github.vol0n.utbotcppclion.client
 
 import com.charleskorn.kaml.Yaml
+import com.github.vol0n.utbotcppclion.server.Server
 import com.intellij.openapi.diagnostic.Logger
 
 import io.grpc.ManagedChannel
@@ -35,7 +36,7 @@ object GrpcStarter {
     val port: Int
     private val serverName: String
     private val defaultConfig = GrpcConfig(50051, "localhost")
-    private val logger = Logger.getInstance(this::class.java)
+    private val log: org.slf4j.Logger = org.slf4j.LoggerFactory.getLogger(GrpcStarter::class.java)
 
     init {
         val configString = this::class.java.getResource("/config.yaml")?.readText()
@@ -49,7 +50,7 @@ object GrpcStarter {
     }
 
     fun startClient(): GrpcClient {
-        logger.info("Connecting to server on host: $serverName, port: $port")
+        log.info("Connecting to server on host: $serverName, port: $port")
         val channel = ManagedChannelBuilder.forAddress(serverName, port).usePlaintext().build()
 
         return GrpcClient(channel)
