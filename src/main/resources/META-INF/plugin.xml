@@ -11,11 +11,11 @@
     <depends>com.intellij.modules.clion</depends>
 
     <extensions defaultExtensionNs="com.intellij">
-        <applicationService serviceImplementation="com.github.vol0n.utbotcppclion.services.GeneratorSettings"/>
+        <projectService serviceImplementation="com.github.vol0n.utbotcppclion.services.GeneratorSettings"/>
         <projectService serviceImplementation="com.github.vol0n.utbotcppclion.services.ProjectSettings"/>
         <projectService serviceImplementation="com.github.vol0n.utbotcppclion.services.Client"/>
-        <projectConfigurable parentId="tools" instance="com.github.vol0n.utbotcppclion.services.ProjectConfigurable"
-                             id="com.github.vol0n.utbotcppclion.services.ProjectConfigurable"
+        <projectConfigurable parentId="tools" instance="com.github.vol0n.utbotcppclion.services.UTBotConfigurable"
+                             id="com.github.vol0n.utbotcppclion.services.UTBotConfigurable"
                              displayName="UTBot Settings"
                              nonDefaultProject="true"/>
         <notificationGroup id="Custom Notification Group" displayType="BALLOON"/>
@@ -70,7 +70,5 @@
         <action id="com.github.vol0n.utbotcppclion.actions.AskServerToGenerateJsonForProjectConfiguration"
                 class="com.github.vol0n.utbotcppclion.actions.AskServerToGenerateJsonForProjectConfiguration" text="Try To Generate Json"
                 description="Ask server to generate missing json files"/>
-        <action id="com.github.vol0n.utbotcppclion.actions.HeartBeatAction"
-                class="com.github.vol0n.utbotcppclion.actions.HeartBeatAction" text="HeartBeat"/>
     </actions>
 </idea-plugin>

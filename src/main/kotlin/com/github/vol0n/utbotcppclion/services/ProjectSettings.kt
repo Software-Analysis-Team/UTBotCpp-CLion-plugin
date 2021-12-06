@@ -14,20 +14,23 @@ import java.nio.file.Paths
  * ProjectSettings is a service used to get project related info
  * for generating tests.
  *
- * @see ProjectConfigurable
+ * @see UTBotConfigurable
  */
-@State(name = "utBotProjectSettings")
+@State(name = "UTBotProjectSettings")
 data class ProjectSettings(
     @com.intellij.util.xmlb.annotations.Transient
     val project: Project? = null,
 ) : PersistentStateComponent<ProjectSettings> {
+    @com.intellij.util.xmlb.annotations.Transient
     val logger = Logger.getInstance(this::class.java)
 
-    // the null value indicates that plugin was launched for the first time,
-    // and the plugin should try to get these paths from ide
-    var targetPath: String? = null
-    var buildDirPath: String? = null
-    var testDirPath: String? = null
+    // the true value indicates that plugin was launched for the first time,
+    // and the plugin should try to get paths from ide
+    @com.intellij.util.xmlb.annotations.Attribute
+    private var isFirstTimeLaunch = true
+    var targetPath: String = ""
+    var buildDirPath: String = ""
+    var testDirPath: String = ""
     var synchronizeCode: Boolean = false
     var sourcePaths: List<String> = emptyList()
 
@@ -45,9 +48,8 @@ data class ProjectSettings(
     fun getRelativeTestDirPath() = testDirPath.getRelativeToProjectPath()
     fun getRelativeSourcesPaths() = sourcePaths.map { it.getRelativeToProjectPath() }
 
-    private fun String?.getRelativeToProjectPath(): String {
+    private fun String.getRelativeToProjectPath(): String {
         logger.info("getRelativeToProjectPath was called on $this")
-        this ?: error("Paths are not initialized.")
         val projectPath = project?.basePath ?: let {
             notifyError("Could not get project path.", project)
             return "/"
@@ -88,13 +90,19 @@ data class ProjectSettings(
     }
 
     private fun checkForUninitializedDataAndInit() {
-        if (targetPath == null || buildDirPath == null || testDirPath == null)
+        if (isFirstTimeLaunch) {
+            isFirstTimeLaunch = false
             init()
+        }
     }
 
-    override fun getState() = this
+    override fun getState(): ProjectSettings {
+        logger.info("getState was called")
+        return this
+    }
 
     override fun loadState(state: ProjectSettings) {
+        logger.info("loadState was called")
         XmlSerializerUtil.copyBean(state, this)
     }
 }

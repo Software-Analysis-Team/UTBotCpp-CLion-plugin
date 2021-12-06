@@ -70,6 +70,7 @@ class Client(val project: Project) : Disposable {
     private suspend fun setMetadata() {
         fun createRandomSequence() = (1..RANDOM_SEQUENCE_LENGTH)
             .map { Random.nextInt(0, RANDOM_SEQUENCE_MAX_VALUE).toString() }
+            .joinToString("")
 
         val clientID = project.name + (System.getenv("USER") ?: "unknownUser") + createRandomSequence()
         try {
