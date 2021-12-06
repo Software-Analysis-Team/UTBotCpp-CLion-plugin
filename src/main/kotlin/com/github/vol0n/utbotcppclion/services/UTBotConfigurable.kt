@@ -40,6 +40,9 @@ class UTBotConfigurable(private val targetProject: Project) : BoundConfigurable(
                 ) { folder ->
                     projectSettings.buildDirPath = folder.path
                     folder.path
+                }.component.apply {
+                    onApplyCallBacks.add { projectSettings.buildDirPath = this.text }
+                    onResetCallBacks.add { this.text = projectSettings.buildDirPath }
                 }
             }
             row {
@@ -52,6 +55,9 @@ class UTBotConfigurable(private val targetProject: Project) : BoundConfigurable(
                 ) { file ->
                     projectSettings.targetPath = file.path
                     file.path
+                }.component.apply {
+                    onApplyCallBacks.add { projectSettings.targetPath = this.text }
+                    onResetCallBacks.add { this.text = projectSettings.targetPath }
                 }
             }
             row {
@@ -64,6 +70,9 @@ class UTBotConfigurable(private val targetProject: Project) : BoundConfigurable(
                 ) { folder ->
                     projectSettings.testDirPath = folder.path
                     folder.path
+                }.component.apply {
+                    onApplyCallBacks.add { projectSettings.testDirPath = this.text }
+                    onResetCallBacks.add { this.text = projectSettings.testDirPath }
                 }
             }
             val checkBoxDs = mapOf(

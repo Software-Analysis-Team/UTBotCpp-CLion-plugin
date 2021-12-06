@@ -104,5 +104,6 @@ data class ProjectSettings(
     override fun loadState(state: ProjectSettings) {
         logger.info("loadState was called")
         XmlSerializerUtil.copyBean(state, this)
+        isFirstTimeLaunch = false
     }
 }
