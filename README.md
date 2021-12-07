@@ -31,7 +31,8 @@ docker run -d \
 ghcr.io/unittestbot/utbotcpp/base_env:<image_tag>
 ```
 `projects path` is the path to folder where projects must be located. The is mounted to container and server will be able to access the project files.
-5. Then you need build the server. Open CLI in container and do the following in the `home/utbot`: 
+
+5. Then you need to build the server. Open CLI in container and do the following in the `home/utbot`: 
 ```
 cp /utbot_distr/install/bin/grpc_cpp_plugin /bin/
 git clone --recursive https://github.com/UnitTestBot/UTBotCpp.git
@@ -55,9 +56,10 @@ Set it to `/home/utbot/projects/<your project name>`.
 
 Before sending requests for generation, you should do the following: 
 1. Add folders containing source files to `source paths` in plugin settings.
-2. Launch `Configure Project` by clicking at `UTBot: connected` in status bar.
-3. If there are problems, try to delete the build folder and launching `Configure Project` again.
-4. When project is configured, you can use actions to send requests to server: by clicking on folders and files in project tree -> UTBot actions,
+2. In settings set `target path` to `\utbot\auto\target\path`
+3. Launch `Configure Project` by clicking at `UTBot: connected` in status bar.
+4. If there are problems, try to delete the build folder and launching `Configure Project` again.
+5. When project is configured, you can use actions to send requests to server: by clicking on folders and files in project tree -> UTBot actions,
 or by right-clicking in the editor -> UTBot actions -> Generate for function.
 
 <!-- Plugin description end -->
