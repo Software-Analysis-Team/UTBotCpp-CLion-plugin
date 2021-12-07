@@ -105,6 +105,12 @@ class UTBotConfigurable(private val targetProject: Project) : BoundConfigurable(
             row(UTBot.message("settings.project.sourcePaths")) {
                 component(createSourcesListComponent())
             }
+            row(UTBot.message("settings.project.remotePath")) {
+                textField(projectSettings::remotePath).component.apply {
+                    onApplyCallBacks.add { projectSettings.remotePath = this.text }
+                    onResetCallBacks.add { this.text = projectSettings.remotePath }
+                }
+            }
         }
     }
 

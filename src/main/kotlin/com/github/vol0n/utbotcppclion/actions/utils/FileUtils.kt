@@ -2,9 +2,6 @@ package com.github.vol0n.utbotcppclion.utils
 
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.vfs.LocalFileSystem
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.collect
-import testsgen.Testgen
 import java.io.File
 import java.nio.file.Paths
 
@@ -14,14 +11,19 @@ fun relativize(from: String, to: String): String {
     return fromPath.relativize(toPath).toString()
 }
 
+fun refreshAndFindIOFile(file: File) {
+    ApplicationManager.getApplication().invokeLater {
+        LocalFileSystem.getInstance()?.refreshAndFindFileByIoFile(file)
+    }
+}
+
+fun refreshAndFindIOFile(filePath: String) = refreshAndFindIOFile(File(filePath))
+
 fun createFileAndMakeDirs(filePath: String, text: String) {
     with(File(filePath)) {
         parentFile?.mkdirs()
         createNewFile()
         writeText(text)
-
-        ApplicationManager.getApplication().invokeLater {
-            LocalFileSystem.getInstance()?.refreshAndFindFileByIoFile(this)
-        }
+        refreshAndFindIOFile(this)
     }
 }

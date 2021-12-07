@@ -11,7 +11,9 @@ import com.github.vol0n.utbotcppclion.messaging.ConnectionStatus
 import com.github.vol0n.utbotcppclion.messaging.UTBotConnectionChangedNotifier
 import com.github.vol0n.utbotcppclion.ui.UTBotRequestProgressIndicator
 import com.github.vol0n.utbotcppclion.utils.createFileAndMakeDirs
+import com.github.vol0n.utbotcppclion.utils.refreshAndFindIOFile
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.components.service
 
 import testsgen.Testgen
 import testsgen.Util
@@ -33,18 +35,18 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.swing.Swing
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeout
+import testsgen.TestsGenServiceGrpcKt
 
 class Client(val project: Project) : Disposable {
-    private var grpcStub = GrpcStarter.startClient().stub
-    val grpcCoroutineScope: CoroutineScope
     private var connectionStatus = ConnectionStatus.INIT
     private val connectionChangedPublisher =
         project.messageBus.syncPublisher(UTBotConnectionChangedNotifier.CONNECTION_CHANGED_TOPIC)
     private var heartBeatJob: Job? = null
     private val logger = Logger.getInstance(this::class.java)
     private val metadata: io.grpc.Metadata = io.grpc.Metadata()
+    private val projectSettings = project.service<ProjectSettings>()
 
+    val grpcCoroutineScope: CoroutineScope
     init {
         val handler = CoroutineExceptionHandler { _, exception ->
             exception.printStackTrace()
@@ -54,10 +56,41 @@ class Client(val project: Project) : Disposable {
         periodicHeartBeat()
     }
 
+    private val grpcStub: TestsGenServiceGrpcKt.TestsGenServiceCoroutineStub
+    init {
+        val stub = GrpcStarter.startClient().stub
+        val clientID = generateClientID()
+        if (projectSettings.isFirstTimeLaunch) {
+            registerClient(clientID)
+        }
+        metadata.put(io.grpc.Metadata.Key.of("clientid", io.grpc.Metadata.ASCII_STRING_MARSHALLER), clientID)
+        grpcStub = io.grpc.stub.MetadataUtils.attachHeaders(stub, metadata)
+    }
+
+    private fun generateClientID(): String {
+        fun createRandomSequence() = (1..RANDOM_SEQUENCE_LENGTH)
+            .map { Random.nextInt(0, RANDOM_SEQUENCE_MAX_VALUE).toString() }
+            .joinToString("")
+
+        return project.name + (System.getenv("USER") ?: "unknownUser") + createRandomSequence()
+    }
+
+    private fun registerClient(clientID: String) {
+        logger.info("in registerClient, clientID == $clientID")
+        grpcCoroutineScope.launch {
+            try {
+                grpcStub.registerClient(Testgen.RegisterClientRequest.newBuilder().setClientId(clientID).build())
+            } catch (e: Exception) {
+                logger.warn("Register client failed: ${e.message}")
+            }
+        }
+    }
+
     fun getConnectionStatus() = connectionStatus
     fun isServerAvailable() = connectionStatus == ConnectionStatus.CONNECTED
 
     fun doHandShake() {
+        logger.info("in doHandShake")
         grpcCoroutineScope.launch {
             try {
                 grpcStub.handshake(Testgen.DummyRequest.newBuilder().build())
@@ -67,28 +100,12 @@ class Client(val project: Project) : Disposable {
         }
     }
 
-    private suspend fun setMetadata() {
-        fun createRandomSequence() = (1..RANDOM_SEQUENCE_LENGTH)
-            .map { Random.nextInt(0, RANDOM_SEQUENCE_MAX_VALUE).toString() }
-            .joinToString("")
-
-        val clientID = project.name + (System.getenv("USER") ?: "unknownUser") + createRandomSequence()
-        try {
-            grpcStub.registerClient(Testgen.RegisterClientRequest.newBuilder().setClientId(clientID).build())
-        } catch (e: Exception) {
-            logger.warn("Setting metadata failed: ${e.message}")
-        }
-        metadata.put(io.grpc.Metadata.Key.of("clientid", io.grpc.Metadata.ASCII_STRING_MARSHALLER), clientID)
-        grpcStub = io.grpc.stub.MetadataUtils.attachHeaders(grpcStub, metadata)
-    }
-
     fun periodicHeartBeat() {
         if (heartBeatJob != null) {
             heartBeatJob?.cancel()
         }
         logger.info("Started heartbeating the server!")
         heartBeatJob = grpcCoroutineScope.launch {
-            setMetadata()
             while (isActive) {
                 heartBeatOnce()
                 delay(HEARTBEAT_INTERVAL)
@@ -98,15 +115,19 @@ class Client(val project: Project) : Disposable {
     }
 
     private fun handleTestResponse(response: Testgen.TestsResponse) {
-        response.testSourcesList.map { sourceCode ->
-            logger.info("Creating source file: ${sourceCode.filePath}")
-            logger.info("Contents: \n ${sourceCode.code}")
-            createFileAndMakeDirs(sourceCode.filePath, sourceCode.code)
-        }
-        response.stubs.stubSourcesList.map { sourceCode ->
-            logger.info("Creating stub file: ${sourceCode.filePath}")
-            logger.info("Contents: \n ${sourceCode.code}")
-            createFileAndMakeDirs(sourceCode.filePath, sourceCode.code)
+        logger.info("in handleTestResponse: \n$response")
+        val sourceListsToProcess = listOf(response.testSourcesList, response.stubs.stubSourcesList)
+        sourceListsToProcess.forEach { sourceList ->
+            sourceList.forEach { sourceCode ->
+                logger.info("Creating source file: ${sourceCode.filePath}")
+                logger.info("Contents: \n ${sourceCode.code}")
+                if (sourceCode.code.isNotEmpty()) {
+                    createFileAndMakeDirs(
+                        projectSettings.convertFromRemotePathIfNeeded(sourceCode.filePath),
+                        sourceCode.code
+                    )
+                }
+            }
         }
     }
 
@@ -119,11 +140,17 @@ class Client(val project: Project) : Disposable {
 
     fun generateForLine(
         request: Testgen.LineRequest
-    ) = grpcStub.generateLineTests(request).handleWithProgress()
+    ) {
+        logger.info("in generateForLine")
+        grpcStub.generateLineTests(request).handleWithProgress()
+    }
 
     fun generateForPredicate(
         request: Testgen.PredicateRequest
-    ) = grpcStub.generatePredicateTests(request).handleWithProgress()
+    ) {
+        logger.info("in generateForPredicate")
+        grpcStub.generatePredicateTests(request).handleWithProgress()
+    }
 
     fun generateForFunction(
         request: Testgen.FunctionRequest
@@ -134,19 +161,31 @@ class Client(val project: Project) : Disposable {
 
     fun generateForClass(
         request: Testgen.ClassRequest
-    ) = grpcStub.generateClassTests(request).handleWithProgress()
+    ) {
+        logger.info("in generateForClass")
+        grpcStub.generateClassTests(request).handleWithProgress()
+    }
 
     fun generateForFolder(
         request: Testgen.FolderRequest
-    ) = grpcStub.generateFolderTests(request).handleWithProgress()
+    ) {
+        logger.info("in generateForFolder")
+        grpcStub.generateFolderTests(request).handleWithProgress()
+    }
 
     fun generateForSnippet(
         request: Testgen.SnippetRequest
-    ) = grpcStub.generateSnippetTests(request).handleWithProgress()
+    ) {
+        logger.info("in generateForSnippet")
+        grpcStub.generateSnippetTests(request).handleWithProgress()
+    }
 
     fun generateForAssertion(
         request: Testgen.AssertionRequest
-    ) = grpcStub.generateAssertionFailTests(request).handleWithProgress()
+    ) {
+        logger.info("in generateForAssertion")
+        grpcStub.generateAssertionFailTests(request).handleWithProgress()
+    }
 
     suspend fun getFunctionReturnType(
         request: Testgen.FunctionRequest
@@ -164,7 +203,7 @@ class Client(val project: Project) : Disposable {
         if (response.hasProgress()) response.progress else null
 
     fun configureProject() {
-        logger.info("In cofigureProject")
+        logger.info("In configureProject")
         fun handleProjectConfigResponse(response: Testgen.ProjectConfigResponse) {
             when (response.type) {
                 Testgen.ProjectConfigStatus.IS_OK -> {
@@ -217,7 +256,8 @@ class Client(val project: Project) : Disposable {
         grpcStub.configureProject(request).handleWithProgress(
             "Ask server to create build dir",
             ::progressOrNull,
-            ::handleBuildDirCreation
+            ::handleBuildDirCreation,
+            onEndOfStream = { refreshAndFindIOFile(projectSettings.buildDirPath) }
         )
         logger.info("Finished createBuildDir()")
     }
@@ -240,7 +280,9 @@ class Client(val project: Project) : Disposable {
             "Ask server to generate json",
             ::progressOrNull,
             ::handleJSONGeneration,
+            onEndOfStream = { refreshAndFindIOFile(projectSettings.getProjectPath()) }
         )
+
         logger.info("Finished generateJSon()")
     }
 
@@ -261,7 +303,8 @@ class Client(val project: Project) : Disposable {
         this.handleWithProgress(
             progressName, Testgen.TestsResponse::getProgress,
             handleResponse = this@Client::handleTestResponse,
-            onCompleted = this@Client::handleTestResponse
+            onCompleted = this@Client::handleTestResponse,
+            onEndOfStream = { refreshAndFindIOFile(projectSettings.testDirPath) }
         )
     }
 
@@ -270,7 +313,8 @@ class Client(val project: Project) : Disposable {
         progressName: String,
         progressAccessor: (T) -> Util.Progress?,
         onCompleted: (T) -> Unit = {},
-        handleResponse: (T) -> Unit = {}
+        handleResponse: (T) -> Unit = {},
+        onEndOfStream: () -> Unit = {}
     ) {
         logger.info("In handleWithProgress")
         val uiProgress = UTBotRequestProgressIndicator(progressName)
@@ -281,6 +325,7 @@ class Client(val project: Project) : Disposable {
                 .catch { exception ->
                     logger.info("In catch of handleWithProgress")
                     logger.warn(exception.message)
+                    exception.message?.let { notifyError(it, project) }
                 }
                 .collect {
                     logger.info("In collect of handleWithProgress: $it")
@@ -295,6 +340,7 @@ class Client(val project: Project) : Disposable {
                     uiProgress.text = progress.message
                     handleResponse(it)
                 }
+            onEndOfStream()
             uiProgress.complete()
         }
     }
