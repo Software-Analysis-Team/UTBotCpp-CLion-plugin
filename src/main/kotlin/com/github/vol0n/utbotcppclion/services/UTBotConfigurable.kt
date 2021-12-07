@@ -110,17 +110,20 @@ class UTBotConfigurable(private val targetProject: Project) : BoundConfigurable(
 
     private fun createSourcesListComponent() =
         ToolbarDecorator.createDecorator(JList(sourcePathListModel))
-            .setAddAction {
-                FileChooser.chooseFile(
+            .setAddAction { actionBtn ->
+                FileChooser.chooseFiles(
                     FileChooserDescriptorFactory.createMultipleFoldersDescriptor(), targetProject, null
-                ) {
-                    sourcePathListModel.add(it.path)
+                ) { files ->
+                    sourcePathListModel.add(files.map { it.path })
                 }
             }.setRemoveAction { actionBtn ->
                 sourcePathListModel.remove((actionBtn.contextComponent as JList<String>).selectedIndex)
             }.setPreferredSize(Dimension(500, 200))
             .createPanel()
 
+    override fun isModified(): Boolean {
+        return super.isModified() || (sourcePathListModel.toList() != projectSettings.sourcePaths)
+    }
 
     override fun apply() {
         logger.info("apply was called")

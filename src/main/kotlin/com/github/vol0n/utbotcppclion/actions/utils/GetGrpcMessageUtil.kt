@@ -32,7 +32,7 @@ fun getProjectContextMessage(params: ProjectSettings, project: Project): Testgen
         .setProjectPath(project.basePath)
         .setBuildDirRelativePath(params.getRelativeBuildDirPath())
         .setResultsDirRelativePath("") // this path is used only for console interface, server don't use it.
-        .setTestDirPath(params.getRelativeTestDirPath())
+        .setTestDirPath(params.testDirPath)
         .build()
 }
 
@@ -41,12 +41,12 @@ fun getProjectRequestMessage(project: Project, params: ProjectSettings): Testgen
     return Testgen.ProjectRequest.newBuilder()
         .setSettingsContext(
             getSettingsContextMessage(
-                service<GeneratorSettings>()
+                project.service<GeneratorSettings>()
             )
         )
         .setProjectContext(getProjectContextMessage(params, project))
-        .setTargetPath(params.getRelativeTargetPath())
-        .addAllSourcePaths(params.getRelativeSourcesPaths())
+        .setTargetPath(params.targetPath)
+        .addAllSourcePaths(params.sourcePaths)
         .setSynchronizeCode(params.synchronizeCode)
         .build()
 }
@@ -73,12 +73,10 @@ fun getLineRequestMessage(e: AnActionEvent): Testgen.LineRequest {
     LOG.info("In getLineRequestMessage")
     val project = e.getRequiredData(CommonDataKeys.PROJECT)
     val filePath = e.getRequiredData(CommonDataKeys.VIRTUAL_FILE).path
-    val projectPath: String = project.basePath!!
-    val relativeFilePath = relativize(projectPath, filePath)
     val editor = e.getRequiredData(CommonDataKeys.EDITOR)
     val projectSettings = project.service<ProjectSettings>()
     val lineNumber = editor.caretModel.logicalPosition.line
-    val result = getLineRequestMessage(project, projectSettings, lineNumber, relativeFilePath)
+    val result = getLineRequestMessage(project, projectSettings, lineNumber, filePath)
     LOG.info("Before returning from getLIneRequestMessage")
     return result
 }
@@ -104,7 +102,7 @@ fun getFileRequestMessage(e: AnActionEvent): Testgen.FileRequest {
     val filePath = e.getRequiredData(CommonDataKeys.VIRTUAL_FILE).path
     return Testgen.FileRequest.newBuilder()
         .setProjectRequest(getProjectRequestMessage(project, project.service()))
-        .setFilePath(relativize(projectPath, filePath))
+        .setFilePath(filePath)
         .build()
 }
 
@@ -128,7 +126,7 @@ fun getFolderRequestMessage(e: AnActionEvent): Testgen.FolderRequest {
     LOG.info("in getFolderRequestMessage")
     return Testgen.FolderRequest.newBuilder()
         .setProjectRequest(getProjectRequestMessage(e))
-        .setFolderPath(relativize(e.project!!.basePath!!, e.getRequiredData(CommonDataKeys.VIRTUAL_FILE).path))
+        .setFolderPath(e.getRequiredData(CommonDataKeys.VIRTUAL_FILE).path)
         .build()
 }
 
@@ -136,8 +134,8 @@ fun getSnippetRequestMessage(e: AnActionEvent): Testgen.SnippetRequest {
     LOG.info("in getSnippetRequestMessage")
     return Testgen.SnippetRequest.newBuilder()
         .setProjectContext(getProjectContextMessage(e.project!!.service(), e.project!!))
-        .setSettingsContext(getSettingsContextMessage(service()))
-        .setFilePath(relativize(e.project?.basePath!!, e.getRequiredData(CommonDataKeys.VIRTUAL_FILE).path))
+        .setSettingsContext(getSettingsContextMessage(e.project!!.service()))
+        .setFilePath(e.getRequiredData(CommonDataKeys.VIRTUAL_FILE).path)
         .build()
 }
 

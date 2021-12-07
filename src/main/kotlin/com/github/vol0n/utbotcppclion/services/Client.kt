@@ -99,9 +99,13 @@ class Client(val project: Project) : Disposable {
 
     private fun handleTestResponse(response: Testgen.TestsResponse) {
         response.testSourcesList.map { sourceCode ->
+            logger.info("Creating source file: ${sourceCode.filePath}")
+            logger.info("Contents: \n ${sourceCode.code}")
             createFileAndMakeDirs(sourceCode.filePath, sourceCode.code)
         }
         response.stubs.stubSourcesList.map { sourceCode ->
+            logger.info("Creating stub file: ${sourceCode.filePath}")
+            logger.info("Contents: \n ${sourceCode.code}")
             createFileAndMakeDirs(sourceCode.filePath, sourceCode.code)
         }
     }
@@ -256,7 +260,8 @@ class Client(val project: Project) : Disposable {
     private fun Flow<Testgen.TestsResponse>.handleWithProgress(progressName: String = "Generating Tests") {
         this.handleWithProgress(
             progressName, Testgen.TestsResponse::getProgress,
-            handleResponse = this@Client::handleTestResponse
+            handleResponse = this@Client::handleTestResponse,
+            onCompleted = this@Client::handleTestResponse
         )
     }
 
@@ -278,7 +283,7 @@ class Client(val project: Project) : Disposable {
                     logger.warn(exception.message)
                 }
                 .collect {
-                    logger.info("In collect of handleWithProgress")
+                    logger.info("In collect of handleWithProgress: $it")
                     val progress = progressAccessor(it)
                     // when we receive last message from server stream
                     if (progress == null || progress.completed) {

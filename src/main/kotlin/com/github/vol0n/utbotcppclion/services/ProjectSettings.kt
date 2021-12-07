@@ -20,14 +20,16 @@ import java.nio.file.Paths
 data class ProjectSettings(
     @com.intellij.util.xmlb.annotations.Transient
     val project: Project? = null,
+
+
 ) : PersistentStateComponent<ProjectSettings> {
     @com.intellij.util.xmlb.annotations.Transient
     val logger = Logger.getInstance(this::class.java)
 
     // the true value indicates that plugin was launched for the first time,
     // and the plugin should try to get paths from ide
-    @com.intellij.util.xmlb.annotations.Attribute
-    private var isFirstTimeLaunch = true
+    // @com.intellij.util.xmlb.annotations.Attribute
+    var isFirstTimeLaunch: Boolean = true
     var targetPath: String = ""
     var buildDirPath: String = ""
     var testDirPath: String = ""
@@ -35,7 +37,7 @@ data class ProjectSettings(
     var sourcePaths: List<String> = emptyList()
 
     init {
-        logger.info("ProjectSettings instance's constructor is called")
+        logger.info("ProjectSettings instance's constructor is called: project == $project")
         // project is null when ide creates ProjectSettings instance from serialized xml file
         // project is not null when plugin is running in user's ide, so we can access ide for paths
         if (project != null) {
@@ -43,10 +45,7 @@ data class ProjectSettings(
         }
     }
 
-    fun getRelativeTargetPath() = targetPath.getRelativeToProjectPath()
     fun getRelativeBuildDirPath() = buildDirPath.getRelativeToProjectPath()
-    fun getRelativeTestDirPath() = testDirPath.getRelativeToProjectPath()
-    fun getRelativeSourcesPaths() = sourcePaths.map { it.getRelativeToProjectPath() }
 
     private fun String.getRelativeToProjectPath(): String {
         logger.info("getRelativeToProjectPath was called on $this")
@@ -97,12 +96,13 @@ data class ProjectSettings(
     }
 
     override fun getState(): ProjectSettings {
-        logger.info("getState was called")
+        logger.info("getState was called: this:$this")
         return this
     }
 
     override fun loadState(state: ProjectSettings) {
-        logger.info("loadState was called")
+        logger.info("loadState was called: state: $state\n this:$this")
+
         XmlSerializerUtil.copyBean(state, this)
         isFirstTimeLaunch = false
     }
