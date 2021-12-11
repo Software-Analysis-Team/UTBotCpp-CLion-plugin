@@ -1,12 +1,14 @@
 package com.github.vol0n.utbotcppclion.services
 
 import com.github.vol0n.utbotcppclion.actions.utils.notifyError
+import com.github.vol0n.utbotcppclion.messaging.UTBotSettingsChangedListener
 import com.github.vol0n.utbotcppclion.utils.relativize
 import com.intellij.openapi.components.PersistentStateComponent
 import com.intellij.openapi.components.State
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.intellij.util.xmlb.XmlSerializerUtil
+import com.jetbrains.cidr.cpp.cmake.model.CMakeConfiguration
 import com.jetbrains.cidr.cpp.execution.CMakeAppRunConfiguration
 import java.nio.file.Paths
 
@@ -85,6 +87,11 @@ data class ProjectSettings(
             couldNotGetItem("testDirPath")
             "/"
         }
+    }
+
+    fun fireUTBotSettingsChanged() {
+        project ?: return
+        project.messageBus.syncPublisher(UTBotSettingsChangedListener.TOPIC).settingsChanged(this)
     }
 
     private fun checkForUninitializedDataAndInit() {

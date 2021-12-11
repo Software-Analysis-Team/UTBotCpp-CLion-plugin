@@ -94,7 +94,6 @@ class ProjectConfigurable(private val targetProject: Project) : BoundConfigurabl
                 || (testsDirPath.get() != settingsState.testDirPath)
                 || (synchronizeCode.get() != settingsState.synchronizeCode)
                 || (sourcePathListModel.toList() != settingsState.sourcePaths)
-
     }
 
     override fun apply() {
@@ -105,6 +104,7 @@ class ProjectConfigurable(private val targetProject: Project) : BoundConfigurabl
         settingsState.testDirPath = testsDirPath.get()
         settingsState.synchronizeCode = synchronizeCode.get()
         settingsState.sourcePaths = sourcePathListModel.toList()
+        settingsState.fireUTBotSettingsChanged()
     }
 
     override fun reset() {
