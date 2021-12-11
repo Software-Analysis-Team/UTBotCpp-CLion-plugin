@@ -11,7 +11,9 @@ class UTBotTargetsToolWindowFactory : ToolWindowFactory {
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
         logger.info("createToolWindowContent was called")
         val contentManager = toolWindow.contentManager
-        val content = contentManager.factory.createContent(UTBotTargetsToolWindow(project).createToolWindow(), null, false)
+        val content = contentManager.factory.createContent(
+            UTBotTargetsController(project).createTargetsToolWindow(), null, false
+        )
         toolWindow.contentManager.addContent(content)
     }
 }
