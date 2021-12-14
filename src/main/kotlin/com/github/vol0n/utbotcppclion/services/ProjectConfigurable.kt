@@ -51,6 +51,8 @@ class ProjectConfigurable(private val targetProject: Project) : BoundConfigurabl
                     fileChooserDescriptor = FileChooserDescriptorFactory.createSingleFileDescriptor()
                 ) { file ->
                     file.path
+                }.apply {
+                    component.isEditable = false
                 }
             }
             row {
