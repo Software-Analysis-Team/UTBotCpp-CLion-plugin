@@ -119,7 +119,7 @@ intellij {
     // use CLion version 2021.2.2
     version.set(platformVersion)
     type.set(platformType)
-    downloadSources.set(false)
+    // downloadSources.set(false)
     updateSinceUntilBuild.set(true)
 
     // to use auto-reload for ide instance
