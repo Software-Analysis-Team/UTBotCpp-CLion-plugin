@@ -1,8 +1,6 @@
 package com.github.vol0n.utbotcppclion.client
 
 import com.charleskorn.kaml.Yaml
-import com.github.vol0n.utbotcppclion.server.Server
-import com.intellij.openapi.diagnostic.Logger
 
 import io.grpc.ManagedChannel
 import io.grpc.ManagedChannelBuilder
