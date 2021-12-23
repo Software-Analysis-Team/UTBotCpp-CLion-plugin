@@ -1,19 +1,14 @@
 package com.github.vol0n.utbotcppclion.services
 
 import com.github.vol0n.utbotcppclion.actions.getProjectConfigRequestMessage
-import com.github.vol0n.utbotcppclion.actions.utils.notifyError
 import com.github.vol0n.utbotcppclion.client.GrpcStarter
 import com.github.vol0n.utbotcppclion.client.ResponseHandle
 import com.github.vol0n.utbotcppclion.messaging.ConnectionStatus
 import com.github.vol0n.utbotcppclion.messaging.UTBotConnectionChangedNotifier
-import com.github.vol0n.utbotcppclion.ui.UTBotRequestProgressIndicator
-import com.github.vol0n.utbotcppclion.utils.createFileAndMakeDirs
-import com.github.vol0n.utbotcppclion.utils.refreshAndFindIOFile
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.components.service
 
 import testsgen.Testgen
-import testsgen.Util
 
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
@@ -25,9 +20,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.swing.Swing
@@ -111,23 +103,6 @@ class Client(val project: Project) : Disposable {
                 delay(HEARTBEAT_INTERVAL)
             }
             logger.info("stopped heartBeating the server!")
-        }
-    }
-
-    private fun handleTestResponse(response: Testgen.TestsResponse) {
-        logger.info("in handleTestResponse: \n$response")
-        val sourceListsToProcess = listOf(response.testSourcesList, response.stubs.stubSourcesList)
-        sourceListsToProcess.forEach { sourceList ->
-            sourceList.forEach { sourceCode ->
-                logger.info("Creating source file: ${sourceCode.filePath}")
-                logger.info("Contents: \n ${sourceCode.code}")
-                if (sourceCode.code.isNotEmpty()) {
-                    createFileAndMakeDirs(
-                        projectSettings.convertFromRemotePathIfNeeded(sourceCode.filePath),
-                        sourceCode.code
-                    )
-                }
-            }
         }
     }
 
@@ -215,9 +190,6 @@ class Client(val project: Project) : Disposable {
         return grpcStub.handshake(Testgen.DummyRequest.newBuilder().build())
     }
 
-    private fun progressOrNull(response: Testgen.ProjectConfigResponse): Util.Progress? =
-        if (response.hasProgress()) response.progress else null
-
     fun configureProject() {
         logger.info("In configureProject")
         val request = getProjectConfigRequestMessage(project, Testgen.ConfigMode.CHECK)
@@ -259,55 +231,6 @@ class Client(val project: Project) : Disposable {
             logger.info("Heartbeat failed: could not connect to server!")
             connectionChangedPublisher.onChange(connectionStatus, ConnectionStatus.BROKEN)
             connectionStatus = ConnectionStatus.BROKEN
-        }
-    }
-
-    private fun Flow<Testgen.TestsResponse>.handleWithProgress(progressName: String = "Generating Tests") {
-        this.handleWithProgress(
-            progressName, Testgen.TestsResponse::getProgress,
-            handleResponse = this@Client::handleTestResponse,
-            onCompleted = this@Client::handleTestResponse,
-            onEndOfStream = { refreshAndFindIOFile(projectSettings.testDirPath) }
-        )
-    }
-
-    // T: TestResponse | ProjectConfigResponse
-    fun <T> Flow<T>.handleWithProgress(
-        progressName: String,
-        progressAccessor: (T) -> Util.Progress?,
-        onCompleted: (T) -> Unit = {},
-        handleResponse: (T) -> Unit = {},
-        onEndOfStream: () -> Unit = {}
-    ) {
-        logger.info("In handleWithProgress")
-        val uiProgress = UTBotRequestProgressIndicator(progressName)
-        // start showing progress in status bar
-        uiProgress.start()
-        uiProgress.requestJob = grpcCoroutineScope.launch {
-            this@handleWithProgress
-                .catch { exception ->
-                    logger.info("In catch of handleWithProgress")
-                    logger.warn(exception.message)
-                    exception.message?.let { notifyError(it, project) }
-                }
-                .collect {
-                    logger.info("In collect of handleWithProgress: $it")
-                    handleResponse(it)
-                    logger.info("In collect of handleWithProgress: $it")
-                    val progress = progressAccessor(it)
-                    // when we receive last message from server stream
-                    if (progress == null || progress.completed) {
-                        onCompleted(it)
-                        return@collect
-                    }
-                    // update progress in status bar
-                    uiProgress.fraction = progress.percent
-                    uiProgress.text = progress.message
-                    handleResponse(it)
-                }
-
-            onEndOfStream()
-            uiProgress.complete()
         }
     }
 

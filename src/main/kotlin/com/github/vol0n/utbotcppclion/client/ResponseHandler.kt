@@ -22,10 +22,10 @@ import testsgen.Testgen
 import testsgen.Util
 
 class ResponseHandle(val project: Project, val client: Client) {
-    val projectSettings: ProjectSettings = project.service()
-    val logger = Logger.getInstance(this::class.java)
+    private val projectSettings: ProjectSettings = project.service()
+    private val logger = Logger.getInstance(this::class.java)
 
-    fun handleTestsResponse(response: Testgen.TestsResponse, uiProgress: UTBotRequestProgressIndicator) {
+    private fun handleTestsResponse(response: Testgen.TestsResponse, uiProgress: UTBotRequestProgressIndicator) {
         if (response.hasProgress()) {
             handleProgress(response.progress, uiProgress)
         }
@@ -35,14 +35,14 @@ class ResponseHandle(val project: Project, val client: Client) {
         }
     }
 
-    fun handleStubsResponse(response: Testgen.StubsResponse, uiProgress: UTBotRequestProgressIndicator) {
+    private fun handleStubsResponse(response: Testgen.StubsResponse, uiProgress: UTBotRequestProgressIndicator) {
         if (response.hasProgress()) {
             handleProgress(response.progress, uiProgress)
         }
         handleSourceCode(response.stubSourcesList)
     }
 
-    fun handleSourceCode(sources: List<Util.SourceCode>) {
+    private fun handleSourceCode(sources: List<Util.SourceCode>) {
         sources.forEach { sourceCode ->
             if (sourceCode.code.isNotEmpty()) {
                 createFileAndMakeDirs(
@@ -53,7 +53,7 @@ class ResponseHandle(val project: Project, val client: Client) {
         }
     }
 
-    fun handleProgress(
+    private fun handleProgress(
         serverProgress: Util.Progress,
         uiProgress: UTBotRequestProgressIndicator,
         onCompleted: () -> Unit = {}
@@ -71,7 +71,7 @@ class ResponseHandle(val project: Project, val client: Client) {
         refreshAndFindIOFile(projectSettings.testDirPath)
     }
 
-    suspend fun handleProjectConfigResponseStream(
+    private suspend fun handleProjectConfigResponseStream(
         grpcStream: Flow<Testgen.ProjectConfigResponse>,
         progressName: String,
         onProgressCompletion: (Testgen.ProjectConfigResponse) -> Unit
@@ -165,7 +165,7 @@ class ResponseHandle(val project: Project, val client: Client) {
      * @param grpcStream - stream of data messages
      * @return last received message, if no messages were received - return null
      */
-    suspend fun <T> handleWithUIProgress(
+    private suspend fun <T> handleWithUIProgress(
         grpcStream: Flow<T>,
         uiProgressName: String,
         dataHandler: (T, UTBotRequestProgressIndicator) -> Unit,
