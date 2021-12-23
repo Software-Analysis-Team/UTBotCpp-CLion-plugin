@@ -1,12 +1,9 @@
 package com.github.vol0n.utbotcppclion.services
 
-import com.github.vol0n.utbotcppclion.actions.AskServerToGenerateBuildDir
-import com.github.vol0n.utbotcppclion.actions.AskServerToGenerateJsonForProjectConfiguration
 import com.github.vol0n.utbotcppclion.actions.getProjectConfigRequestMessage
 import com.github.vol0n.utbotcppclion.actions.utils.notifyError
-import com.github.vol0n.utbotcppclion.actions.utils.notifyInfo
-import com.github.vol0n.utbotcppclion.actions.utils.notifyUnknownResponse
 import com.github.vol0n.utbotcppclion.client.GrpcStarter
+import com.github.vol0n.utbotcppclion.client.ResponseHandle
 import com.github.vol0n.utbotcppclion.messaging.ConnectionStatus
 import com.github.vol0n.utbotcppclion.messaging.UTBotConnectionChangedNotifier
 import com.github.vol0n.utbotcppclion.ui.UTBotRequestProgressIndicator
@@ -45,8 +42,10 @@ class Client(val project: Project) : Disposable {
     private val logger = Logger.getInstance(this::class.java)
     private val metadata: io.grpc.Metadata = io.grpc.Metadata()
     private val projectSettings = project.service<ProjectSettings>()
+    private val handler = ResponseHandle(project, this)
 
     val grpcCoroutineScope: CoroutineScope
+
     init {
         val handler = CoroutineExceptionHandler { _, exception ->
             exception.printStackTrace()
@@ -57,6 +56,7 @@ class Client(val project: Project) : Disposable {
     }
 
     private val grpcStub: TestsGenServiceGrpcKt.TestsGenServiceCoroutineStub
+
     init {
         val stub = GrpcStarter.startClient().stub
         val clientID = generateClientID()
@@ -135,56 +135,72 @@ class Client(val project: Project) : Disposable {
         request: Testgen.FileRequest
     ) {
         logger.info("in generateForFile")
-        grpcStub.generateFileTests(request).handleWithProgress()
+        grpcCoroutineScope.launch {
+            handler.handleTestsStream(grpcStub.generateFileTests(request), "Generate For File")
+        }
     }
 
     fun generateForLine(
         request: Testgen.LineRequest
     ) {
         logger.info("in generateForLine")
-        grpcStub.generateLineTests(request).handleWithProgress()
+        grpcCoroutineScope.launch {
+            handler.handleTestsStream(grpcStub.generateLineTests(request), "Generate For Line")
+        }
     }
 
     fun generateForPredicate(
         request: Testgen.PredicateRequest
     ) {
         logger.info("in generateForPredicate")
-        grpcStub.generatePredicateTests(request).handleWithProgress()
+        grpcCoroutineScope.launch {
+            handler.handleTestsStream(grpcStub.generatePredicateTests(request), "Generate For Predicate")
+        }
     }
 
     fun generateForFunction(
         request: Testgen.FunctionRequest
     ) {
         logger.info("in generateForFunction")
-        grpcStub.generateFunctionTests(request).handleWithProgress()
+        grpcCoroutineScope.launch {
+            handler.handleTestsStream(grpcStub.generateFunctionTests(request), "Generate For Function")
+        }
     }
 
     fun generateForClass(
         request: Testgen.ClassRequest
     ) {
         logger.info("in generateForClass")
-        grpcStub.generateClassTests(request).handleWithProgress()
+        grpcCoroutineScope.launch {
+            handler.handleTestsStream(grpcStub.generateClassTests(request), "Generate For Folder")
+        }
     }
 
     fun generateForFolder(
         request: Testgen.FolderRequest
     ) {
         logger.info("in generateForFolder")
-        grpcStub.generateFolderTests(request).handleWithProgress()
+        grpcCoroutineScope.launch {
+            handler.handleTestsStream(grpcStub.generateFolderTests(request), "Generate For Folder")
+        }
     }
 
     fun generateForSnippet(
         request: Testgen.SnippetRequest
     ) {
         logger.info("in generateForSnippet")
-        grpcStub.generateSnippetTests(request).handleWithProgress()
+        grpcCoroutineScope.launch {
+            handler.handleTestsStream(grpcStub.generateSnippetTests(request), "Generate For Snippet")
+        }
     }
 
     fun generateForAssertion(
         request: Testgen.AssertionRequest
     ) {
         logger.info("in generateForAssertion")
-        grpcStub.generateAssertionFailTests(request).handleWithProgress()
+        grpcCoroutineScope.launch {
+            handler.handleTestsStream(grpcStub.generateAssertionFailTests(request), "Generate For Assertion")
+        }
     }
 
     suspend fun getFunctionReturnType(
@@ -204,85 +220,32 @@ class Client(val project: Project) : Disposable {
 
     fun configureProject() {
         logger.info("In configureProject")
-        fun handleProjectConfigResponse(response: Testgen.ProjectConfigResponse) {
-            when (response.type) {
-                Testgen.ProjectConfigStatus.IS_OK -> {
-                    notifyInfo("Project is configured!", project)
-                }
-                Testgen.ProjectConfigStatus.BUILD_DIR_NOT_FOUND -> {
-                    notifyError(
-                        "Project build dir not found! ${response.message}",
-                        project,
-                        AskServerToGenerateBuildDir()
-                    )
-                }
-                Testgen.ProjectConfigStatus.LINK_COMMANDS_JSON_NOT_FOUND, Testgen.ProjectConfigStatus.COMPILE_COMMANDS_JSON_NOT_FOUND -> {
-                    val missingFileName =
-                        if (response.type == Testgen.ProjectConfigStatus.LINK_COMMANDS_JSON_NOT_FOUND) "link_commands.json" else "compile_commands.json"
-                    notifyError(
-                        "Project is not configured properly: $missingFileName is missing in the build folder.",
-                        project, AskServerToGenerateJsonForProjectConfiguration()
-                    )
-                }
-                else -> notifyUnknownResponse(response, project)
-            }
-        }
-
         val request = getProjectConfigRequestMessage(project, Testgen.ConfigMode.CHECK)
-        grpcStub.configureProject(request).handleWithProgress(
-            "Configuring project",
-            ::progressOrNull,
-            ::handleProjectConfigResponse
-        )
+        grpcCoroutineScope.launch {
+            handler.handleCheckConfigurationResponse(
+                grpcStub.configureProject(request),
+                "Checking project configuration...")
+        }
         logger.info("Finished configureProject")
     }
 
     fun createBuildDir() {
         logger.info("In createBuildDir")
-        fun handleBuildDirCreation(serverResponse: Testgen.ProjectConfigResponse) {
-            when (serverResponse.type) {
-                Testgen.ProjectConfigStatus.IS_OK -> {
-                    notifyInfo("Build dir was created!", project)
-                    configureProject()
-                }
-                Testgen.ProjectConfigStatus.BUILD_DIR_CREATION_FAILED -> {
-                    notifyInfo("Failed to create build dir! ${serverResponse.message}", project)
-                }
-                else -> notifyUnknownResponse(serverResponse, project)
-            }
-        }
 
         val request = getProjectConfigRequestMessage(project, Testgen.ConfigMode.CREATE_BUILD_DIR)
-        grpcStub.configureProject(request).handleWithProgress(
-            "Ask server to create build dir",
-            ::progressOrNull,
-            ::handleBuildDirCreation,
-            onEndOfStream = { refreshAndFindIOFile(projectSettings.buildDirPath) }
-        )
+        grpcCoroutineScope.launch {
+            handler.handleCreateBuildDirResponse(grpcStub.configureProject(request), "Create build directory...")
+        }
+
         logger.info("Finished createBuildDir()")
     }
 
     fun generateJSon() {
         logger.info("In generateJson()")
-        fun handleJSONGeneration(serverResponse: Testgen.ProjectConfigResponse) {
-            when (serverResponse.type) {
-                Testgen.ProjectConfigStatus.IS_OK -> notifyInfo("Successfully configured project!", project)
-                Testgen.ProjectConfigStatus.RUN_JSON_GENERATION_FAILED -> notifyError(
-                    "UTBot tried to configure project, but failed with the " +
-                            "following message: ${serverResponse.message}", project
-                )
-                else -> notifyUnknownResponse(serverResponse, project)
-            }
-        }
-
         val request = getProjectConfigRequestMessage(project, Testgen.ConfigMode.GENERATE_JSON_FILES)
-        grpcStub.configureProject(request).handleWithProgress(
-            "Ask server to generate json",
-            ::progressOrNull,
-            ::handleJSONGeneration,
-            onEndOfStream = { refreshAndFindIOFile(projectSettings.getProjectPath()) }
-        )
-
+        grpcCoroutineScope.launch {
+            handler.handleGenerateJsonResponse(grpcStub.configureProject(request), "Generate JSON files...")
+        }
         logger.info("Finished generateJSon()")
     }
 
@@ -329,6 +292,8 @@ class Client(val project: Project) : Disposable {
                 }
                 .collect {
                     logger.info("In collect of handleWithProgress: $it")
+                    handleResponse(it)
+                    logger.info("In collect of handleWithProgress: $it")
                     val progress = progressAccessor(it)
                     // when we receive last message from server stream
                     if (progress == null || progress.completed) {
@@ -340,6 +305,7 @@ class Client(val project: Project) : Disposable {
                     uiProgress.text = progress.message
                     handleResponse(it)
                 }
+
             onEndOfStream()
             uiProgress.complete()
         }
