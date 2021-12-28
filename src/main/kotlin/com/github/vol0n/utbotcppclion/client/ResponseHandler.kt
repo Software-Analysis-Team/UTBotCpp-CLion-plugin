@@ -63,7 +63,7 @@ class ResponseHandle(val project: Project, val client: Client) {
         }
         // update progress in status bar
         uiProgress.fraction = serverProgress.percent
-        uiProgress.text = serverProgress.message
+        uiProgress.text = serverProgress.message + "..."
     }
 
     suspend fun handleTestsStream(grpcStream: Flow<Testgen.TestsResponse>, progressName: String) {

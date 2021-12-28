@@ -26,6 +26,11 @@
                     secondary="false"
                     anchor="bottom"
                     factoryClass="com.github.vol0n.utbotcppclion.ui.UTBotTargetsToolWindowFactory"/>
+        <toolWindow factoryClass="com.github.vol0n.utbotcppclion.ui.ConsoleToolWindowProvider"
+                    id="UTBot consoles"
+                    anchor="bottom"
+                    secondary="true"
+        />
     </extensions>
 
     <actions>

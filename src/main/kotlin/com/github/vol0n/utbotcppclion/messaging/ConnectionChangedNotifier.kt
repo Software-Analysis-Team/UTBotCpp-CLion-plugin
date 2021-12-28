@@ -1,6 +1,7 @@
 package com.github.vol0n.utbotcppclion.messaging
 
 import com.intellij.util.messages.Topic
+import testsgen.Testgen
 
 enum class ConnectionStatus(val description: String) {
     CONNECTED("connected"),
@@ -8,13 +9,14 @@ enum class ConnectionStatus(val description: String) {
     INIT("not connected")
 }
 
-interface UTBotConnectionChangedNotifier {
+interface UTBotEventsListener {
     companion object {
         val CONNECTION_CHANGED_TOPIC = Topic.create(
             "Connection to UTBot server changed",
-            UTBotConnectionChangedNotifier::class.java
+            UTBotEventsListener::class.java
         )
     }
 
-    fun onChange(oldStatus: ConnectionStatus, newStatus: ConnectionStatus)
+    fun onConnectionChange(oldStatus: ConnectionStatus, newStatus: ConnectionStatus) {}
+    fun onHeartbeatSuccess(response: Testgen.HeartbeatResponse) {}
 }

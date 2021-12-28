@@ -3,7 +3,7 @@ package com.github.vol0n.utbotcppclion.ui
 import com.github.vol0n.utbotcppclion.actions.AskServerToGenerateJsonForProjectConfiguration
 import com.github.vol0n.utbotcppclion.actions.ConfigureProjectAction
 import com.github.vol0n.utbotcppclion.messaging.ConnectionStatus
-import com.github.vol0n.utbotcppclion.messaging.UTBotConnectionChangedNotifier
+import com.github.vol0n.utbotcppclion.messaging.UTBotEventsListener
 import com.github.vol0n.utbotcppclion.services.Client
 import com.intellij.ide.DataManager
 import com.intellij.openapi.actionSystem.ActionPlaces
@@ -51,9 +51,9 @@ class UTBotStatusBar : StatusBarWidget, StatusBarWidget.TextPresentation {
 
     override fun install(statusbar: StatusBar) {
         this.statusBar = statusbar
-        statusbar.project?.messageBus?.connect()?.subscribe(UTBotConnectionChangedNotifier.CONNECTION_CHANGED_TOPIC,
-            object : UTBotConnectionChangedNotifier {
-                override fun onChange(oldStatus: ConnectionStatus, newStatus: ConnectionStatus) {
+        statusbar.project?.messageBus?.connect()?.subscribe(UTBotEventsListener.CONNECTION_CHANGED_TOPIC,
+            object : UTBotEventsListener {
+                override fun onConnectionChange(oldStatus: ConnectionStatus, newStatus: ConnectionStatus) {
                     statusBar?.updateWidget(ID())
                 }
             })

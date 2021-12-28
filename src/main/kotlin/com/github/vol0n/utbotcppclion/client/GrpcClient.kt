@@ -32,7 +32,7 @@ data class GrpcConfig(
 
 object GrpcStarter {
     val port: Int
-    private val serverName: String
+    val serverName: String
     private val defaultConfig = GrpcConfig(50051, "localhost")
     private val log: org.slf4j.Logger = org.slf4j.LoggerFactory.getLogger(GrpcStarter::class.java)
 

@@ -176,3 +176,5 @@ fun getCmakeOptions(project: Project): String? {
         it.profile.enabled
     }?.profile?.generationOptions
 }
+
+fun getDummyRequest() = Testgen.DummyRequest.newBuilder().build()

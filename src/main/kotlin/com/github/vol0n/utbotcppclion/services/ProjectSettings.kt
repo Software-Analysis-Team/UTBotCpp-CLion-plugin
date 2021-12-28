@@ -32,11 +32,11 @@ data class ProjectSettings(
     // and the plugin should try to get paths from ide
     // @com.intellij.util.xmlb.annotations.Attribute
     var isFirstTimeLaunch: Boolean = true
-    var targetPath: String = ""
-    var buildDirPath: String = ""
-    var testDirPath: String = ""
+    var targetPath: String = "/"
+    var buildDirPath: String = "/"
+    var testDirPath: String = "/"
     var synchronizeCode: Boolean = false
-    var remotePath: String = ""
+    var remotePath: String = "/"
     var sourcePaths: List<String> = emptyList()
 
     init {
