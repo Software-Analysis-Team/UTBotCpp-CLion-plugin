@@ -35,7 +35,7 @@ plugins {
     // Kotlin support
     id("org.jetbrains.kotlin.jvm") version "1.5.30"
     // Gradle IntelliJ Plugin
-    id("org.jetbrains.intellij") version "1.1.6"
+    id("org.jetbrains.intellij") version "1.3.0"
     // Gradle Changelog Plugin
     id("org.jetbrains.changelog") version "1.3.0"
     // Gradle Qodana Plugin
@@ -71,7 +71,7 @@ dependencies {
     implementation("ch.qos.logback:logback-classic:1.2.3")
 
     // yaml
-    implementation("com.charleskorn.kaml:kaml:0.36.0")
+    implementation("com.charleskorn.kaml:kaml:0.38.0")
 }
 
 protobuf {
@@ -119,7 +119,7 @@ intellij {
     // use CLion version 2021.2.2
     version.set(platformVersion)
     type.set(platformType)
-    downloadSources.set(false)
+    // downloadSources.set(false)
     updateSinceUntilBuild.set(true)
 
     // to use auto-reload for ide instance

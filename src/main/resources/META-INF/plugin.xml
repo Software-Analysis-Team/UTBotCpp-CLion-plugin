@@ -10,6 +10,7 @@
     <depends>com.intellij.modules.cidr.lang</depends>
     <depends>com.intellij.modules.clion</depends>
 
+
     <extensions defaultExtensionNs="com.intellij">
         <projectService serviceImplementation="com.github.vol0n.utbotcppclion.services.GeneratorSettings"/>
         <projectService serviceImplementation="com.github.vol0n.utbotcppclion.services.ProjectSettings"/>
@@ -20,6 +21,11 @@
                              nonDefaultProject="true"/>
         <notificationGroup id="Custom Notification Group" displayType="BALLOON"/>
         <statusBarWidgetFactory implementation="com.github.vol0n.utbotcppclion.ui.StatusBar"/>
+
+        <toolWindow id="UTBot targets"
+                    secondary="false"
+                    anchor="bottom"
+                    factoryClass="com.github.vol0n.utbotcppclion.ui.UTBotTargetsToolWindowFactory"/>
     </extensions>
 
     <actions>
