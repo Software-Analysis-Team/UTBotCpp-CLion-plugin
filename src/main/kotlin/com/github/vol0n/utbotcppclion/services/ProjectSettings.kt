@@ -24,7 +24,7 @@ data class ProjectSettings(
     val project: Project? = null,
 
 
-) : PersistentStateComponent<ProjectSettings> {
+    ) : PersistentStateComponent<ProjectSettings> {
     @com.intellij.util.xmlb.annotations.Transient
     val logger = Logger.getInstance(this::class.java)
 
@@ -36,6 +36,7 @@ data class ProjectSettings(
     var buildDirPath: String = ""
     var testDirPath: String = ""
     var synchronizeCode: Boolean = false
+    var remotePath: String = ""
     var sourcePaths: List<String> = emptyList()
 
     init {
@@ -47,11 +48,64 @@ data class ProjectSettings(
         }
     }
 
+    fun getAbsoluteSourcePaths() = sourcePaths.map { convertToRemotePathIfNeeded(it) }
     fun getRelativeBuildDirPath() = buildDirPath.getRelativeToProjectPath()
-
-    private fun String.getRelativeToProjectPath(): String {
-        logger.info("getRelativeToProjectPath was called on $this")
+    fun getAbsoluteTestDirPath() = convertToRemotePathIfNeeded(testDirPath)
+    fun getAbsoluteTargetPath() = convertToRemotePathIfNeeded(targetPath)
+    fun getProjectPath(): String {
         val projectPath = project?.basePath ?: let {
+            notifyError("Could not get project path")
+            "/"
+        }
+        return convertToRemotePathIfNeeded(projectPath)
+    }
+
+    fun isRemoteScenario() = remotePath.isNotEmpty()
+
+    /**
+     * Convert absolute path on this machine to corresponding absolute path on docker
+     * if path to project on a remote machine was specified in the settings.
+     *
+     * If remote path == "", this function returns [path] unchanged.
+     *
+     * @param path - absolute path on local machine to be converted
+     */
+    fun convertToRemotePathIfNeeded(path: String): String {
+        logger.info("Converting $path to remote version")
+        var result = path
+        if (isRemoteScenario()) {
+            val relativeToProjectPath = path.getRelativeToProjectPath()
+            result = Paths.get(remotePath, relativeToProjectPath).toString()
+        }
+        logger.info("The resulting path: $result")
+        return result
+    }
+
+    /**
+     * Convert absolute path on docker container to corresponding absolute path on local machine.
+     *
+     * If remote path == "", this function returns [path] unchanged.
+     *
+     * @param path - absolute path on docker to be converted
+     */
+    fun convertFromRemotePathIfNeeded(path: String): String {
+        logger.info("Converting $path to local version")
+        var result = path
+        if (isRemoteScenario()) {
+            val projectLocalPath = project?.basePath ?: let {
+                notifyError("Could not get project path.", project)
+                return "/"
+            }
+            val relativeToProjectPath = path.getRelativeToProjectPath(remotePath)
+            result = Paths.get(projectLocalPath, relativeToProjectPath).toString()
+        }
+        logger.info("The resulting path: $result")
+        return result
+    }
+
+    private fun String.getRelativeToProjectPath(projectPath: String? = project?.basePath): String {
+        logger.info("getRelativeToProjectPath was called on $this")
+        projectPath ?: let {
             notifyError("Could not get project path.", project)
             return "/"
         }
