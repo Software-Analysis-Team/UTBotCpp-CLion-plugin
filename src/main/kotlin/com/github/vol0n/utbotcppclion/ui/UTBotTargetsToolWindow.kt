@@ -20,8 +20,9 @@ class UTBotTargetsToolWindow(
 
     init {
         val panel = JBScrollPane()
-
         uiList.cellRenderer = Renderer()
+        uiList.selectedIndex = 0
+        println(uiList.model)
         uiList.addListSelectionListener {
             controller.selectionChanged(uiList.selectedIndex)
             uiList.updateUI()
@@ -38,12 +39,14 @@ class UTBotTargetsToolWindow(
             selected: Boolean,
             hasFocus: Boolean
         ) {
+            /*
             icon = if (target.targetAbsolutePath == controller.getCurrentTargetPath()) {
-                uiList.selectedIndex = index
+                list.selectedIndex = index
                 AllIcons.Icons.Ide.MenuArrowSelected;
             } else {
                 null
             }
+             */
             append(target.name, SimpleTextAttributes.REGULAR_BOLD_ATTRIBUTES);
             append(" ")
             append(target.description, SimpleTextAttributes.GRAYED_ATTRIBUTES);

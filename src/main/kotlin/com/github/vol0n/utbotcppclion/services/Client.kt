@@ -6,13 +6,13 @@ import com.github.vol0n.utbotcppclion.client.GrpcStarter
 import com.github.vol0n.utbotcppclion.client.ResponseHandle
 import com.github.vol0n.utbotcppclion.messaging.ConnectionStatus
 import com.github.vol0n.utbotcppclion.messaging.UTBotEventsListener
+import com.github.vol0n.utbotcppclion.ui.OutputType
 import com.github.vol0n.utbotcppclion.ui.UTBotConsole
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.components.service
 
 import testsgen.Testgen
 
-import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import kotlin.random.Random
 
@@ -30,26 +30,39 @@ import kotlinx.coroutines.swing.Swing
 import kotlinx.coroutines.withContext
 import testsgen.TestsGenServiceGrpcKt
 
+import ch.qos.logback.classic.Logger
+//import com.intellij.openapi.diagnostic.Logger
+import com.github.vol0n.utbotcppclion.client.ClientLogAppender
+import com.github.vol0n.utbotcppclion.ui.OutputWindowProvider
+import com.intellij.ide.util.RunOnceUtil
+import com.intellij.openapi.components.Service
+import mu.KotlinLogging
+
 enum class LogLevel(val id: String) {
     INFO("INFO"), FATAL("FATAL"), ERROR("ERROR"),
     DEBUG("DEBUG"), TRACE("TRACE"), WARN("WARN")
 }
 
+@Service
 class Client(val project: Project) : Disposable {
     private var connectionStatus = ConnectionStatus.INIT
     private val connectionChangedPublisher =
         project.messageBus.syncPublisher(UTBotEventsListener.CONNECTION_CHANGED_TOPIC)
     private var heartBeatJob: Job? = null
-    private val logger = Logger.getInstance(this::class.java)
     private val metadata: io.grpc.Metadata = io.grpc.Metadata()
-    private val projectSettings = project.service<ProjectSettings>()
     private val handler = ResponseHandle(project, this)
-    val clientLog = UTBotConsole("Client log", project)
-    private val serverLog = UTBotConsole("Server log", project)
-    private val logLevel: LogLevel = LogLevel.INFO
+    private var logLevel: LogLevel = LogLevel.INFO
     private var newClient = true
+    var isPluginStarted = false
+        private set
 
-    fun getOutputConsoles() = listOf(clientLog, serverLog)
+    private val logger = KotlinLogging.logger("ClientLogger")
+
+    init {
+        (logger.underlyingLogger as Logger).getAppender("ClientAppender").let {
+            (it as ClientLogAppender).utBotConsole = OutputWindowProvider.getOutput(project, OutputType.CLIENT_LOG)
+        }
+    }
 
     val grpcCoroutineScope: CoroutineScope
 
@@ -64,59 +77,90 @@ class Client(val project: Project) : Disposable {
 
     private val grpcStub: TestsGenServiceGrpcKt.TestsGenServiceCoroutineStub
 
+    fun setLoggingLevel(newLevel: LogLevel) {
+        logger.info("Setting new log level: ${newLevel.id}")
+        logLevel = newLevel
+        grpcCoroutineScope.launch {
+            provideLogChannel()
+        }
+    }
+
     init {
-        clientLog.info("Connecting to server on host: ${GrpcStarter.serverName} , port: ${GrpcStarter.port}")
+        logger.info("Connecting to server on host: ${GrpcStarter.serverName} , port: ${GrpcStarter.port}")
         val stub = GrpcStarter.startClient().stub
         val clientID = generateClientID()
-        if (projectSettings.isFirstTimeLaunch) {
-            registerClient(clientID)
-        }
         metadata.put(io.grpc.Metadata.Key.of("clientid", io.grpc.Metadata.ASCII_STRING_MARSHALLER), clientID)
         grpcStub = io.grpc.stub.MetadataUtils.attachHeaders(stub, metadata)
         project.messageBus.connect()
             .subscribe(UTBotEventsListener.CONNECTION_CHANGED_TOPIC, object : UTBotEventsListener {
                 override fun onHeartbeatSuccess(response: Testgen.HeartbeatResponse) {
+                    RunOnceUtil.runOnceForProject(project, "UTBot: Register client for server") {
+                        registerClient(clientID)
+                    }
                     if (newClient || !response.linked) {
                         grpcCoroutineScope.launch {
-                            provideLogChanel()
+                            provideLogChannel()
+                            provideGTestChannel()
                         }
                     }
                 }
             })
     }
 
-    private suspend fun provideLogChanel() {
+    private suspend fun provideGTestChannel() {
+        val request = Testgen.LogChannelRequest.newBuilder().setLogLevel("MAX").build()
+        try {
+            grpcStub.closeGTestChannel(getDummyRequest())
+        } catch (e: Exception) {
+            logger.error("Exception when closing gtest channel")
+            logger.error(e.message)
+        }
+
+        val gTestConsole: UTBotConsole = OutputWindowProvider.getOutput(project, OutputType.GTEST)
+        grpcStub.openGTestChannel(request)
+            .catch { exception ->
+                logger.error("Exception when opening gtest channel")
+                logger.error(exception.message)
+            }
+            .collect {
+                gTestConsole.info(it.message)
+            }
+    }
+
+    private suspend fun provideLogChannel() {
         val request = Testgen.LogChannelRequest.newBuilder().setLogLevel(logLevel.id).build()
         try {
             grpcStub.closeLogChannel(getDummyRequest())
         } catch (e: Exception) {
-            logger.debug("Exception when closing log channel")
-            logger.debug(e)
+            logger.error("Exception when closing log channel")
+            logger.error(e.message)
         }
+
+        val serverConsole: UTBotConsole = OutputWindowProvider.getOutput(project, OutputType.SERVER_LOG)
         grpcStub.openLogChannel(request)
             .catch { exception ->
-                logger.debug(exception)
+                logger.error("Exception when opening log channel")
+                logger.error(exception.message)
             }
             .collect {
-                serverLog.info(it.message)
+                serverConsole.info(it.message)
             }
     }
 
     private fun generateClientID(): String {
         fun createRandomSequence() = (1..RANDOM_SEQUENCE_LENGTH)
-            .map { Random.nextInt(0, RANDOM_SEQUENCE_MAX_VALUE).toString() }
-            .joinToString("")
+            .joinToString("") { Random.nextInt(0, RANDOM_SEQUENCE_MAX_VALUE).toString() }
 
         return project.name + (System.getenv("USER") ?: "unknownUser") + createRandomSequence()
     }
 
     private fun registerClient(clientID: String) {
-        logger.info("in registerClient, clientID == $clientID")
         grpcCoroutineScope.launch {
             try {
+                logger.info("sending REGISTER CLIENT request, clientID == $clientID")
                 grpcStub.registerClient(Testgen.RegisterClientRequest.newBuilder().setClientId(clientID).build())
             } catch (e: Exception) {
-                logger.warn("Register client failed: ${e.message}")
+                logger.error("Register client failed: ${e.message}")
             }
         }
     }
@@ -136,11 +180,10 @@ class Client(val project: Project) : Disposable {
     }
 
     fun periodicHeartBeat() {
-        clientLog.info("The heartbeat started with interval: $HEARTBEAT_INTERVAL ms")
+        logger.info("The heartbeat started with interval: $HEARTBEAT_INTERVAL ms")
         if (heartBeatJob != null) {
             heartBeatJob?.cancel()
         }
-        logger.info("Started heartbeating the server!")
         heartBeatJob = grpcCoroutineScope.launch {
             while (isActive) {
                 heartBeatOnce()
@@ -153,9 +196,8 @@ class Client(val project: Project) : Disposable {
     fun generateForFile(
         request: Testgen.FileRequest
     ) {
-        logger.info("in generateForFile")
-        clientLog.info("generateForFile")
         grpcCoroutineScope.launch {
+            logger.info("Sending request to generate for FILE: \n$request")
             handler.handleTestsStream(grpcStub.generateFileTests(request), "Generate For File")
         }
     }
@@ -163,8 +205,8 @@ class Client(val project: Project) : Disposable {
     fun generateForLine(
         request: Testgen.LineRequest
     ) {
-        logger.info("in generateForLine")
         grpcCoroutineScope.launch {
+            logger.info("Sending request to generate for LINE: \n$request")
             handler.handleTestsStream(grpcStub.generateLineTests(request), "Generate For Line")
         }
     }
@@ -172,8 +214,8 @@ class Client(val project: Project) : Disposable {
     fun generateForPredicate(
         request: Testgen.PredicateRequest
     ) {
-        logger.info("in generateForPredicate")
         grpcCoroutineScope.launch {
+            logger.info("Sending request to generate for PREDICATE: \n$request")
             handler.handleTestsStream(grpcStub.generatePredicateTests(request), "Generate For Predicate")
         }
     }
@@ -181,8 +223,8 @@ class Client(val project: Project) : Disposable {
     fun generateForFunction(
         request: Testgen.FunctionRequest
     ) {
-        logger.info("in generateForFunction")
         grpcCoroutineScope.launch {
+            logger.info("Sending request to generate for FUNCTION: \n$request")
             handler.handleTestsStream(grpcStub.generateFunctionTests(request), "Generate For Function")
         }
     }
@@ -190,8 +232,8 @@ class Client(val project: Project) : Disposable {
     fun generateForClass(
         request: Testgen.ClassRequest
     ) {
-        logger.info("in generateForClass")
         grpcCoroutineScope.launch {
+            logger.info("Sending request to generate for CLASS: \n$request")
             handler.handleTestsStream(grpcStub.generateClassTests(request), "Generate For Folder")
         }
     }
@@ -199,8 +241,8 @@ class Client(val project: Project) : Disposable {
     fun generateForFolder(
         request: Testgen.FolderRequest
     ) {
-        logger.info("in generateForFolder")
         grpcCoroutineScope.launch {
+            logger.info("Sending request to generate for FOLDER: \n$request")
             handler.handleTestsStream(grpcStub.generateFolderTests(request), "Generate For Folder")
         }
     }
@@ -208,8 +250,8 @@ class Client(val project: Project) : Disposable {
     fun generateForSnippet(
         request: Testgen.SnippetRequest
     ) {
-        logger.info("in generateForSnippet")
         grpcCoroutineScope.launch {
+            logger.info("Sending request to generate for SNIPPET: \n$request")
             handler.handleTestsStream(grpcStub.generateSnippetTests(request), "Generate For Snippet")
         }
     }
@@ -217,8 +259,8 @@ class Client(val project: Project) : Disposable {
     fun generateForAssertion(
         request: Testgen.AssertionRequest
     ) {
-        logger.info("in generateForAssertion")
         grpcCoroutineScope.launch {
+            logger.info("Sending request to generate for ASSERTION: \n$request")
             handler.handleTestsStream(grpcStub.generateAssertionFailTests(request), "Generate For Assertion")
         }
     }
@@ -226,60 +268,62 @@ class Client(val project: Project) : Disposable {
     suspend fun getFunctionReturnType(
         request: Testgen.FunctionRequest
     ): Testgen.FunctionTypeResponse = withContext(Dispatchers.IO) {
-        logger.info("in getFunctionReturnType")
+        logger.info("Sending request to get FUNCTION RETURN TYPE: \n$request")
         grpcStub.getFunctionReturnType(request)
     }
 
     suspend fun handShake(): Testgen.DummyResponse {
-        logger.info("in handShake()")
+        logger.info("Sending HANDSHAKE request")
         return grpcStub.handshake(Testgen.DummyRequest.newBuilder().build())
     }
 
     fun configureProject() {
-        logger.info("In configureProject")
-        clientLog.info("Configuring project")
         val request = getProjectConfigRequestMessage(project, Testgen.ConfigMode.CHECK)
         grpcCoroutineScope.launch {
+            logger.info("Sending request to CHECK PROJECT CONFIGURATION: \n$request")
             handler.handleCheckConfigurationResponse(
                 grpcStub.configureProject(request),
                 "Checking project configuration..."
             )
-            clientLog.info("Finished project configuration")
         }
-        logger.info("Finished configureProject")
     }
 
     fun createBuildDir() {
-        logger.info("In createBuildDir")
-        clientLog.info("Creating build directory")
-
         val request = getProjectConfigRequestMessage(project, Testgen.ConfigMode.CREATE_BUILD_DIR)
         grpcCoroutineScope.launch {
+            logger.info("Sending request to GENERATE BUILD DIR: \n$request")
             handler.handleCreateBuildDirResponse(grpcStub.configureProject(request), "Create build directory...")
         }
+    }
 
-        logger.info("Finished createBuildDir()")
+    fun getCoverageAndResults(request: Testgen.CoverageAndResultsRequest) {
+        grpcCoroutineScope.launch {
+            withContext(Dispatchers.Default) {
+                logger.info("Sending request to get COVERAGE AND RESULTS: \n$request")
+                handler.handleCoverageAndResultsResponse(
+                    grpcStub.createTestsCoverageAndResult(request),
+                    "Generate For Assertion"
+                )
+            }
+        }
     }
 
     fun generateJSon() {
-        logger.info("In generateJson()")
-        clientLog.info("generating json files")
         val request = getProjectConfigRequestMessage(project, Testgen.ConfigMode.GENERATE_JSON_FILES)
         grpcCoroutineScope.launch {
+            logger.info("Sending request to GENERATE JSON FILES: \n$request")
             handler.handleGenerateJsonResponse(grpcStub.configureProject(request), "Generate JSON files...")
         }
-        logger.info("Finished generateJSon()")
     }
 
     private suspend fun heartBeatOnce() {
         try {
-            logger.debug("in heartBeatOnce")
             val response = grpcStub.heartbeat(Testgen.DummyRequest.newBuilder().build())
             connectionChangedPublisher.onConnectionChange(connectionStatus, ConnectionStatus.CONNECTED)
             connectionChangedPublisher.onHeartbeatSuccess(response)
             connectionStatus = ConnectionStatus.CONNECTED
         } catch (e: Exception) {
-            logger.info("Heartbeat failed: could not connect to server!")
+            logger.error("Heartbeat failed with exception: \n${e.message}")
             connectionChangedPublisher.onConnectionChange(connectionStatus, ConnectionStatus.BROKEN)
             connectionStatus = ConnectionStatus.BROKEN
         }
@@ -292,6 +336,10 @@ class Client(val project: Project) : Disposable {
     }
 
     override fun dispose() {
-        grpcCoroutineScope.cancel()
+        grpcCoroutineScope.launch {
+            grpcStub.closeLogChannel(getDummyRequest())
+            grpcStub.closeGTestChannel(getDummyRequest())
+            cancel()
+        }
     }
 }

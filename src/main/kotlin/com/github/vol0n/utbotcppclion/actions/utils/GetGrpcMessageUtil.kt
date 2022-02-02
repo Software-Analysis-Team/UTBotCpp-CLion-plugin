@@ -178,3 +178,50 @@ fun getCmakeOptions(project: Project): String? {
 }
 
 fun getDummyRequest() = Testgen.DummyRequest.newBuilder().build()
+
+fun getTestFilter(e: AnActionEvent): Testgen.TestFilter {
+    val filePath = e.getRequiredData(CommonDataKeys.VIRTUAL_FILE).path
+    println(e.dataContext)
+    val testName = ""
+    val testSuite = ""
+    return getTestFilter(filePath, testName, testSuite)
+}
+
+fun getTestFilter(filePath: String, testName: String = "", testSuite: String = ""): Testgen.TestFilter =
+    Testgen.TestFilter.newBuilder()
+        .setTestFilePath(filePath)
+        .setTestName(testName)
+        .setTestSuite(testSuite)
+        .build()
+
+fun getCoverageAndResultsRequest(
+    projectSettings: ProjectSettings,
+    filePath: String,
+    testSuite: String = "",
+    testName: String = "",
+    includeCoverage: Boolean = true
+): Testgen.CoverageAndResultsRequest {
+    val correctFilePath = projectSettings.convertToRemotePathIfNeeded(filePath)
+    return Testgen.CoverageAndResultsRequest.newBuilder()
+        .setCoverage(includeCoverage)
+        .setProjectContext(getProjectContextMessage(projectSettings, projectSettings.project!!))
+        .setSettingsContext(getSettingsContextMessage(projectSettings.project.service()))
+        .setTestFilter(getTestFilter(correctFilePath, testName, testSuite))
+        .build()
+}
+
+fun getCoverageAndResultsRequest(
+    e: AnActionEvent,
+    suiteName: String = "",
+    testName: String = "",
+    includeCoverage: Boolean = true
+): Testgen.CoverageAndResultsRequest {
+    val projectSettings = e.project!!.service<ProjectSettings>()
+    return getCoverageAndResultsRequest(
+        projectSettings,
+        e.getRequiredData(CommonDataKeys.VIRTUAL_FILE).path,
+        suiteName,
+        testName,
+        includeCoverage
+    )
+}

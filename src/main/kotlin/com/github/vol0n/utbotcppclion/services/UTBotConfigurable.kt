@@ -1,6 +1,7 @@
 package com.github.vol0n.utbotcppclion.services
 
 import com.github.vol0n.utbotcppclion.UTBot
+import com.github.vol0n.utbotcppclion.messaging.UTBotSettingsChangedListener
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.fileChooser.FileChooser
@@ -27,8 +28,17 @@ class UTBotConfigurable(private val targetProject: Project) : BoundConfigurable(
         CollectionListModel(*targetProject.getService(ProjectSettings::class.java).state.sourcePaths.toTypedArray())
     private val onApplyCallBacks = mutableListOf<() -> Unit>()
     private val onResetCallBacks = mutableListOf<() -> Unit>()
+    private val panel = createMainPanel()
 
-    override fun createPanel(): DialogPanel {
+    init {
+        targetProject.messageBus.connect().subscribe(UTBotSettingsChangedListener.TOPIC, UTBotSettingsChangedListener {
+            reset()
+        })
+    }
+
+    override fun createPanel() = createMainPanel()
+
+    fun createMainPanel(): DialogPanel {
         logger.info("createPanel was called")
         return panel {
             row {
@@ -109,6 +119,14 @@ class UTBotConfigurable(private val targetProject: Project) : BoundConfigurable(
                 textField(projectSettings::remotePath).component.apply {
                     onApplyCallBacks.add { projectSettings.remotePath = this.text }
                     onResetCallBacks.add { this.text = projectSettings.remotePath }
+                }
+            }
+            row {
+                comment("Try to predict paths from CLion CMake Model")
+                label("Try automatic configuration")
+                button("Auto") {
+                    projectSettings.predictPaths()
+                    projectSettings.fireUTBotSettingsChanged()
                 }
             }
         }

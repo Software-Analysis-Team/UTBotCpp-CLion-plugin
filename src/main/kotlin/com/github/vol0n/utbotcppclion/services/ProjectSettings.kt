@@ -2,7 +2,9 @@ package com.github.vol0n.utbotcppclion.services
 
 import com.github.vol0n.utbotcppclion.actions.utils.notifyError
 import com.github.vol0n.utbotcppclion.messaging.UTBotSettingsChangedListener
+import com.github.vol0n.utbotcppclion.ui.UTBotTarget
 import com.github.vol0n.utbotcppclion.utils.relativize
+import com.intellij.ide.util.RunOnceUtil
 import com.intellij.openapi.components.PersistentStateComponent
 import com.intellij.openapi.components.State
 import com.intellij.openapi.diagnostic.Logger
@@ -10,6 +12,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.util.xmlb.XmlSerializerUtil
 import com.jetbrains.cidr.cpp.cmake.model.CMakeConfiguration
 import com.jetbrains.cidr.cpp.execution.CMakeAppRunConfiguration
+import java.io.File
 import java.nio.file.Paths
 
 /**
@@ -28,10 +31,6 @@ data class ProjectSettings(
     @com.intellij.util.xmlb.annotations.Transient
     val logger = Logger.getInstance(this::class.java)
 
-    // the true value indicates that plugin was launched for the first time,
-    // and the plugin should try to get paths from ide
-    // @com.intellij.util.xmlb.annotations.Attribute
-    var isFirstTimeLaunch: Boolean = true
     var targetPath: String = "/"
     var buildDirPath: String = "/"
     var testDirPath: String = "/"
@@ -41,10 +40,11 @@ data class ProjectSettings(
 
     init {
         logger.info("ProjectSettings instance's constructor is called: project == $project")
-        // project is null when ide creates ProjectSettings instance from serialized xml file
-        // project is not null when plugin is running in user's ide, so we can access ide for paths
-        if (project != null) {
-            checkForUninitializedDataAndInit()
+        // when user launches the project for the first time, try to predict paths
+        project?.let {
+            RunOnceUtil.runOnceForProject(
+                project, "Predict UTBot paths"
+            ) { predictPaths() }
         }
     }
 
@@ -119,41 +119,51 @@ data class ProjectSettings(
         project
     )
 
-    // try to get build dir, tests dir and cmake target paths from ide
-    private fun init() {
+    // try to get build dir, tests dir, cmake target paths, and source folders paths from ide
+    fun predictPaths() {
+        logger.info("predict paths was called")
+        fun getSourceFoldersFromSources(sources: Collection<File>) = sources.map {
+            it.parent
+        }.distinct()
 
-        val confAndTarget = CMakeAppRunConfiguration.getSelectedConfigurationAndTarget(project)
-        val cmakeConfigurations = confAndTarget?.first?.cMakeTarget?.buildConfigurations
-        if (cmakeConfigurations == null || cmakeConfigurations.isEmpty()) {
-            couldNotGetItem("cmakeConfigurations")
-            return
+        fun predictTestsDirPath() {
+            val projectPath = project?.basePath
+            testDirPath = if (projectPath != null) {
+                Paths.get(projectPath, "tests").toString()
+            } else {
+                couldNotGetItem("project path")
+                "/"
+            }
         }
 
-        val cmakeConfiguration = cmakeConfigurations.first() // todo: when there are more than one configuration?
-        targetPath = cmakeConfiguration.productFile?.absolutePath ?: let {
-            couldNotGetItem("targetPath")
-            "/"
+        fun getCmakeConfiguration(): CMakeConfiguration? {
+            val confAndTarget = CMakeAppRunConfiguration.getSelectedConfigurationAndTarget(project)
+            val cmakeConfigurations = confAndTarget?.first?.cMakeTarget?.buildConfigurations
+            return cmakeConfigurations?.firstOrNull()
         }
-        buildDirPath = cmakeConfiguration.buildWorkingDir.absolutePath
-        val projectPath = project?.basePath
-        testDirPath = if (projectPath != null) {
-            Paths.get(projectPath, "tests").toString()
+
+        predictTestsDirPath()
+
+        val cmakeConfiguration = getCmakeConfiguration()
+        if (cmakeConfiguration != null) {
+            // try to get all source paths, so user does not have to choose them by hand in settings
+            sourcePaths = getSourceFoldersFromSources(cmakeConfiguration.sources)
+            targetPath = UTBotTarget.UTBOT_AUTO_TARGET.targetAbsolutePath
+            /* пока что работает только авто таргет, с другими сервер не работает
+            targetPath = cmakeConfiguration.productFile?.absolutePath ?: let {
+                couldNotGetItem("targetPath")
+                "/"
+            }
+             */
+            buildDirPath = cmakeConfiguration.buildWorkingDir.absolutePath
         } else {
-            couldNotGetItem("testDirPath")
-            "/"
+            notifyError("CMake is unavailable: automatic configuration failed")
         }
     }
 
     fun fireUTBotSettingsChanged() {
         project ?: return
         project.messageBus.syncPublisher(UTBotSettingsChangedListener.TOPIC).settingsChanged(this)
-    }
-
-    private fun checkForUninitializedDataAndInit() {
-        if (isFirstTimeLaunch) {
-            isFirstTimeLaunch = false
-            init()
-        }
     }
 
     override fun getState(): ProjectSettings {
@@ -165,6 +175,5 @@ data class ProjectSettings(
         logger.info("loadState was called: state: $state\n this:$this")
 
         XmlSerializerUtil.copyBean(state, this)
-        isFirstTimeLaunch = false
     }
 }

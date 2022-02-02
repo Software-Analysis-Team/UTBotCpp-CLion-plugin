@@ -1,5 +1,6 @@
 package com.github.vol0n.utbotcppclion.client
 
+import ch.qos.logback.classic.Logger
 import com.charleskorn.kaml.Yaml
 
 import io.grpc.ManagedChannel
@@ -9,6 +10,7 @@ import testsgen.TestsGenServiceGrpcKt
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
+import mu.KotlinLogging
 
 import java.io.Closeable
 import java.util.concurrent.TimeUnit
@@ -30,11 +32,11 @@ data class GrpcConfig(
     val grpcServerName: String
 )
 
+private val log = KotlinLogging.logger(Logger.ROOT_LOGGER_NAME)
 object GrpcStarter {
     val port: Int
     val serverName: String
     private val defaultConfig = GrpcConfig(50051, "localhost")
-    private val log: org.slf4j.Logger = org.slf4j.LoggerFactory.getLogger(GrpcStarter::class.java)
 
     init {
         val configString = this::class.java.getResource("/config.yaml")?.readText()

@@ -1,5 +1,6 @@
 package com.github.vol0n.utbotcppclion.server
 
+import ch.qos.logback.classic.Logger
 import com.github.vol0n.utbotcppclion.client.GrpcStarter
 
 import testsgen.Testgen
@@ -8,8 +9,14 @@ import testsgen.Util
 
 import kotlin.random.Random
 import kotlin.reflect.KCallable
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.isActive
+import kotlinx.coroutines.isActive
+import mu.KotlinLogging
+import org.slf4j.LoggerFactory
 
 import java.io.File
 import java.nio.file.Files
@@ -17,10 +24,7 @@ import java.nio.file.Paths
 
 class Server(private val port: Int) {
 
-    companion object {
-        private val log: org.slf4j.Logger = org.slf4j.LoggerFactory.getLogger(Server::class.java)
-    }
-
+    val log: Logger = LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME) as Logger
     private val server: io.grpc.Server = io.grpc.ServerBuilder
         .forPort(port)
         .intercept(LogInterceptor())
@@ -48,7 +52,12 @@ class Server(private val port: Int) {
     }
 
 
-    private class TestGenService : TestsGenServiceGrpcKt.TestsGenServiceCoroutineImplBase() {
+    private inner class TestGenService : TestsGenServiceGrpcKt.TestsGenServiceCoroutineImplBase() {
+        private val messages: MutableList<String> = mutableListOf()
+        init {
+            val appender = log.getAppender("DummyServerAppender") as DummyServerAppender
+            appender.messageBuffer = messages
+        }
 
         fun log(function: KCallable<*>, message: String) {
             log.info("[${function.name}] $message")
@@ -186,6 +195,32 @@ class Server(private val port: Int) {
 
         override suspend fun heartbeat(request: Testgen.DummyRequest): Testgen.HeartbeatResponse {
             return Testgen.HeartbeatResponse.newBuilder().setLinked(true).build()
+        }
+
+        override fun openGTestChannel(request: Testgen.LogChannelRequest): Flow<Testgen.LogEntry> {
+            return flow {
+                while (true) {
+                    emit(Testgen.LogEntry.newBuilder().setMessage("dummy gtest message").build())
+                    delay(1000L)
+                }
+            }
+        }
+
+        override fun openLogChannel(request: Testgen.LogChannelRequest): Flow<Testgen.LogEntry> {
+            request.logLevel
+            return flow {
+                while (currentCoroutineContext().isActive) {
+                    messages.forEach { _ ->
+                        val response = Testgen.LogEntry.newBuilder().setMessage(messages.removeLast()).build()
+                        emit(response)
+                    }
+                    delay(500L)
+                }
+            }
+        }
+
+        override suspend fun closeLogChannel(request: Testgen.DummyRequest): Testgen.DummyResponse {
+            return Testgen.DummyResponse.newBuilder().build()
         }
 
         override fun configureProject(request: Testgen.ProjectConfigRequest): Flow<Testgen.ProjectConfigResponse> {

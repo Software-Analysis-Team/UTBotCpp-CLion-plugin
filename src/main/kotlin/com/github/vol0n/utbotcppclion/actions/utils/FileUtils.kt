@@ -24,6 +24,7 @@ fun createFileAndMakeDirs(filePath: String, text: String) {
         parentFile?.mkdirs()
         createNewFile()
         writeText(text)
-        refreshAndFindIOFile(this)
     }
 }
+
+fun isCPPFileName(fileName: String) = """.*\.(cpp|hpp|c|h)""".toRegex().matches(fileName)

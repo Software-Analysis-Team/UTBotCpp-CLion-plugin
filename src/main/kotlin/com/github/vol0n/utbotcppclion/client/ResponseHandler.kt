@@ -1,18 +1,25 @@
 package com.github.vol0n.utbotcppclion.client
 
+import com.github.vol0n.utbotcppclion.RunConfig.UTBotRunWithCoverageRunConfig
 import com.github.vol0n.utbotcppclion.actions.AskServerToGenerateBuildDir
 import com.github.vol0n.utbotcppclion.actions.AskServerToGenerateJsonForProjectConfiguration
 import com.github.vol0n.utbotcppclion.actions.utils.notifyError
 import com.github.vol0n.utbotcppclion.actions.utils.notifyInfo
 import com.github.vol0n.utbotcppclion.actions.utils.notifyUnknownResponse
+import com.github.vol0n.utbotcppclion.coverage.UTBotCoverageProgramRunner
 import com.github.vol0n.utbotcppclion.services.Client
 import com.github.vol0n.utbotcppclion.services.ProjectSettings
 import com.github.vol0n.utbotcppclion.ui.UTBotRequestProgressIndicator
 import com.github.vol0n.utbotcppclion.utils.createFileAndMakeDirs
 import com.github.vol0n.utbotcppclion.utils.refreshAndFindIOFile
+import com.intellij.coverage.CoverageDataManager
+import com.intellij.coverage.CoverageRunnerData
+import com.intellij.execution.runners.ProgramRunner
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
+import com.intellij.rt.coverage.data.CoverageData
 import kotlin.coroutines.coroutineContext
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
@@ -35,6 +42,25 @@ class ResponseHandle(val project: Project, val client: Client) {
         }
     }
 
+    suspend fun handleCoverageAndResultsResponse(grpcStream: Flow<Testgen.CoverageAndResultsResponse>, uiProgressName: String) {
+        fun dataHandler(response: Testgen.CoverageAndResultsResponse, uiProgress: UTBotRequestProgressIndicator) {
+            if (response.hasProgress()) {
+                ApplicationManager.getApplication().invokeLater {
+                    handleProgress(response.progress, uiProgress)
+                }
+            }
+        }
+        val lastResponse = handleWithUIProgress(grpcStream, uiProgressName, ::dataHandler)
+        lastResponse ?: error("Last response is Null")
+        if (lastResponse.errorMessage.isNotEmpty()) {
+            notifyError(lastResponse.errorMessage, project)
+        }
+
+        val conf = UTBotRunWithCoverageRunConfig(lastResponse.coveragesList, project, "Handle")
+        logger.info("LAUNCHING PROCESSING OF COVERAGE")
+        CoverageDataManager.getInstance(project).processGatheredCoverage(conf, CoverageRunnerData())
+    }
+
     private fun handleStubsResponse(response: Testgen.StubsResponse, uiProgress: UTBotRequestProgressIndicator) {
         if (response.hasProgress()) {
             handleProgress(response.progress, uiProgress)
@@ -44,12 +70,14 @@ class ResponseHandle(val project: Project, val client: Client) {
 
     private fun handleSourceCode(sources: List<Util.SourceCode>) {
         sources.forEach { sourceCode ->
+            val filePath: String = projectSettings.convertFromRemotePathIfNeeded(sourceCode.filePath)
             if (sourceCode.code.isNotEmpty()) {
                 createFileAndMakeDirs(
-                    projectSettings.convertFromRemotePathIfNeeded(sourceCode.filePath),
+                    filePath,
                     sourceCode.code
                 )
             }
+            refreshAndFindIOFile(filePath)
         }
     }
 
@@ -157,6 +185,7 @@ class ResponseHandle(val project: Project, val client: Client) {
         refreshAndFindIOFile(projectSettings.buildDirPath)
     }
 
+
     /**
      * Handle server stream of data messages showing progress in the status bar
      *
@@ -171,7 +200,9 @@ class ResponseHandle(val project: Project, val client: Client) {
         dataHandler: (T, UTBotRequestProgressIndicator) -> Unit,
     ): T? {
         val uiProgress = UTBotRequestProgressIndicator(uiProgressName)
-        uiProgress.start()
+        ApplicationManager.getApplication().invokeLater {
+            uiProgress.start()
+        }
         uiProgress.requestJob = coroutineContext[Job]
         var lastReceivedData: T? = null
         grpcStream
@@ -184,7 +215,9 @@ class ResponseHandle(val project: Project, val client: Client) {
                 lastReceivedData = it
                 dataHandler(it, uiProgress)
             }
-        uiProgress.complete()
+        ApplicationManager.getApplication().invokeLater {
+            uiProgress.complete()
+        }
         return lastReceivedData
     }
 }
