@@ -51,6 +51,7 @@ class UTBotConfigurable(private val targetProject: Project) : BoundConfigurable(
                     projectSettings.buildDirPath = folder.path
                     folder.path
                 }.component.apply {
+                    this.maximumSize = Dimension(370, 100)
                     onApplyCallBacks.add { projectSettings.buildDirPath = this.text }
                     onResetCallBacks.add { this.text = projectSettings.buildDirPath }
                 }
@@ -66,6 +67,7 @@ class UTBotConfigurable(private val targetProject: Project) : BoundConfigurable(
                     projectSettings.targetPath = file.path
                     file.path
                 }.component.apply {
+                    this.maximumSize = Dimension(370, 100)
                     onApplyCallBacks.add { projectSettings.targetPath = this.text }
                     onResetCallBacks.add { this.text = projectSettings.targetPath }
                 }
@@ -81,6 +83,7 @@ class UTBotConfigurable(private val targetProject: Project) : BoundConfigurable(
                     projectSettings.testDirPath = folder.path
                     folder.path
                 }.component.apply {
+                    this.maximumSize = Dimension(370, 100)
                     onApplyCallBacks.add { projectSettings.testDirPath = this.text }
                     onResetCallBacks.add { this.text = projectSettings.testDirPath }
                 }
@@ -107,6 +110,7 @@ class UTBotConfigurable(private val targetProject: Project) : BoundConfigurable(
             intFields.forEach { (message, intProperty) ->
                 row(message) {
                     intTextField(intProperty).component.apply {
+                        this.maximumSize = Dimension(100, 100)
                         onApplyCallBacks.add { intProperty.set(this.text.toInt()) }
                         onResetCallBacks.add { this.text = intProperty.get().toString() }
                     }
@@ -117,14 +121,14 @@ class UTBotConfigurable(private val targetProject: Project) : BoundConfigurable(
             }
             row(UTBot.message("settings.project.remotePath")) {
                 textField(projectSettings::remotePath).component.apply {
+                    this.maximumSize = Dimension(370, 100)
                     onApplyCallBacks.add { projectSettings.remotePath = this.text }
                     onResetCallBacks.add { this.text = projectSettings.remotePath }
                 }
             }
             row {
-                comment("Try to predict paths from CLion CMake Model")
-                label("Try automatic configuration")
-                button("Auto") {
+                label("Try to get paths from CMake model: ")
+                button("detect paths") {
                     projectSettings.predictPaths()
                     projectSettings.fireUTBotSettingsChanged()
                 }

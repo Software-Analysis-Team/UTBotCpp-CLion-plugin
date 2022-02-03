@@ -5,13 +5,16 @@ import com.intellij.coverage.CoverageDataManager
 import com.intellij.coverage.CoverageSuitesBundle
 import com.intellij.coverage.SimpleCoverageAnnotator
 import com.intellij.openapi.components.service
+import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiDirectory
 import com.intellij.psi.PsiFile
+import mu.KotlinLogging
 import java.io.File
 
 class UTBotCoverageAnnotator(project: Project?) : SimpleCoverageAnnotator(project) {
+    private val log = Logger.getInstance(this::class.java)
     companion object {
         fun getInstance(project: Project): UTBotCoverageAnnotator = project.service()
     }
@@ -25,6 +28,7 @@ class UTBotCoverageAnnotator(project: Project?) : SimpleCoverageAnnotator(projec
         currentSuite: CoverageSuitesBundle,
         manager: CoverageDataManager
     ): String? {
+        log.info("getDirCoverage: $directory")
         val coverageInfo = getDirCoverageInfo(directory, currentSuite) ?: return null
 
         return if (manager.isSubCoverageActive) {
@@ -52,8 +56,9 @@ class UTBotCoverageAnnotator(project: Project?) : SimpleCoverageAnnotator(projec
             else -> "${info.coveredFilesCount} of ${info.totalFilesCount} files"
         }
 
-    override fun getLinesCoverageInformationString(info: FileCoverageInfo): String? =
-        when {
+    override fun getLinesCoverageInformationString(info: FileCoverageInfo): String? {
+        log.info("getLinesCoverageInformationString: ${info}")
+        return when {
             info.totalLineCount == 0 -> null
             info.coveredLineCount == 0 -> CoverageBundle.message("lines.covered.info.not.covered")
             else -> {
@@ -61,12 +66,14 @@ class UTBotCoverageAnnotator(project: Project?) : SimpleCoverageAnnotator(projec
                 "${calcCoveragePercentage(info)} $message"
             }
         }
+    }
 
     override fun getRoots(
         project: Project?,
         dataManager: CoverageDataManager,
         suite: CoverageSuitesBundle?
     ): Array<VirtualFile> {
+        log.info("getRoots was called: ${suite?.coverageData}")
         return emptyArray()
     }
 }

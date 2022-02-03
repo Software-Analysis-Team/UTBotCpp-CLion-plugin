@@ -12,6 +12,7 @@ import com.intellij.coverage.CoverageSuitesBundle
 import com.intellij.execution.configurations.RunConfigurationBase
 import com.intellij.execution.configurations.coverage.CoverageEnabledConfiguration
 import com.intellij.execution.testframework.AbstractTestProxy
+import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
@@ -23,8 +24,9 @@ import java.io.File
 import java.util.*
 
 class UTBotCoverageEngine : CoverageEngine() {
+    private val log = Logger.getInstance(this::class.java)
     companion object {
-        internal fun provideQualifiedName(sourceFile: PsiFile) = sourceFile.virtualFile?.path
+        internal fun provideQualifiedName(sourceFile: PsiFile): String? = sourceFile.virtualFile?.path
     }
 
     override fun isApplicableTo(conf: RunConfigurationBase<*>) = conf is UTBotRunWithCoverageRunConfig
@@ -39,6 +41,7 @@ class UTBotCoverageEngine : CoverageEngine() {
         oldToNewConverter: Function<in Int, Int>?,
         subCoverageActive: Boolean
     ): CoverageLineMarkerRenderer {
+        log.info("getLineMarkerRenderer was called! Classname: $className, line: $lineNumber, lines: $lines")
         return super.getLineMarkerRenderer(
             lineNumber,
             className,
@@ -52,6 +55,7 @@ class UTBotCoverageEngine : CoverageEngine() {
     }
 
     override fun coverageEditorHighlightingApplicableTo(psiFile: PsiFile): Boolean {
+        log.debug("coverageEditorHighlightingApplicableTo was called on: $psiFile")
         return true
     }
 
@@ -114,12 +118,14 @@ class UTBotCoverageEngine : CoverageEngine() {
     ) = false
 
     override fun getQualifiedNames(sourceFile: PsiFile): MutableSet<String> {
+        log.info("getQualifiedNames was called: $sourceFile")
         return provideQualifiedName(sourceFile)?.let {
             mutableSetOf(it)
         } ?: mutableSetOf()
     }
 
     override fun getQualifiedName(outputFile: File, sourceFile: PsiFile): String {
+        log.info("getQualifiedName was called: $sourceFile")
         return outputFile.absolutePath
     }
 
@@ -130,15 +136,24 @@ class UTBotCoverageEngine : CoverageEngine() {
         suite: CoverageSuitesBundle
     ) = false
 
-    override fun acceptedByFilters(psiFile: PsiFile, suite: CoverageSuitesBundle) = true
+    override fun acceptedByFilters(psiFile: PsiFile, suite: CoverageSuitesBundle): Boolean {
+        log.info("acceptedByFilters: $psiFile, ${suite.coverageData}")
+       return true
+    }
 
     override fun collectSrcLinesForUntouchedFile(classFile: File, suite: CoverageSuitesBundle): MutableList<Int>? =
         mutableListOf()
 
-    override fun findTestsByNames(testNames: Array<out String>, project: Project): MutableList<PsiElement> =
-        mutableListOf()
+    override fun findTestsByNames(testNames: Array<out String>, project: Project): MutableList<PsiElement> {
+        log.info("findTestsByNames was called: $testNames")
+        return mutableListOf()
+    }
 
-    override fun getTestMethodName(element: PsiElement, testProxy: AbstractTestProxy): String? = null
+
+    override fun getTestMethodName(element: PsiElement, testProxy: AbstractTestProxy): String? {
+        log.info("getTestMethodName: ${element.text}, testProxy: ${testProxy.allTests}")
+        return null
+    }
 
     override fun getPresentableText(): String {
         return "UTBot Coverage Engine"

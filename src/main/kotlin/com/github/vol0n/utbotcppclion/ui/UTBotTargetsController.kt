@@ -34,7 +34,7 @@ class UTBotTargetsController(val project: Project) {
     private val listModel = CollectionListModel(mutableListOf(UTBotTarget.UTBOT_AUTO_TARGET))
     init {
         listModel.addAll(1, getCMakeTargets())
-        projectSettings.targetPath?.let { addTargetPathIfNotPresent(it) }
+        addTargetPathIfNotPresent(projectSettings.targetPath)
         connectToEvents()
     }
 
@@ -62,7 +62,9 @@ class UTBotTargetsController(val project: Project) {
 
     fun selectionChanged(index: Int) {
         // when user selects target update model
-        projectSettings.targetPath = listModel.getElementAt(index).targetAbsolutePath
+        if (index in 0 until listModel.size) {
+            projectSettings.targetPath = listModel.getElementAt(index).targetAbsolutePath
+        }
     }
 
     fun getCurrentTargetPath() = projectSettings.targetPath
@@ -73,7 +75,7 @@ class UTBotTargetsController(val project: Project) {
             override fun reloadingFinished(canceled: Boolean) {
                 listModel.replaceAll(mutableListOf(UTBotTarget.UTBOT_AUTO_TARGET).apply {
                     addAll(getCMakeTargets())
-                    projectSettings.targetPath?.let { addTargetPathIfNotPresent(it) }
+                    addTargetPathIfNotPresent(projectSettings.targetPath)
                 })
             }
         })

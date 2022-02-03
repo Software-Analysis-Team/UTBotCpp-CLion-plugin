@@ -11,5 +11,5 @@ fun interface UTBotTestResultsReceivedListener {
         )
     }
 
-    fun testResultsReceived(results: Testgen.TestResultObject)
+    fun testResultsReceived(results: List<Testgen.TestResultObject>)
 }

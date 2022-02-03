@@ -7,6 +7,7 @@ import com.github.vol0n.utbotcppclion.actions.utils.notifyError
 import com.github.vol0n.utbotcppclion.actions.utils.notifyInfo
 import com.github.vol0n.utbotcppclion.actions.utils.notifyUnknownResponse
 import com.github.vol0n.utbotcppclion.coverage.UTBotCoverageProgramRunner
+import com.github.vol0n.utbotcppclion.messaging.UTBotTestResultsReceivedListener
 import com.github.vol0n.utbotcppclion.services.Client
 import com.github.vol0n.utbotcppclion.services.ProjectSettings
 import com.github.vol0n.utbotcppclion.ui.UTBotRequestProgressIndicator
@@ -56,8 +57,21 @@ class ResponseHandle(val project: Project, val client: Client) {
             notifyError(lastResponse.errorMessage, project)
         }
 
+        // when we received results, test statuses should be updated in the gutter
+        project.messageBus.syncPublisher(UTBotTestResultsReceivedListener.TOPIC).testResultsReceived(lastResponse.testRunResultsList)
+
         val conf = UTBotRunWithCoverageRunConfig(lastResponse.coveragesList, project, "Handle")
         logger.info("LAUNCHING PROCESSING OF COVERAGE")
+
+        logger.info("coverage list size: ${lastResponse.coveragesList.size}")
+        lastResponse.coveragesList.forEach {
+            logger.info("${it.filePath.substringAfterLast('/')}: ${it.coveredRangesList.size} ${it.uncoveredRangesList.size}")
+        }
+
+        logger.info("test results list size: ${lastResponse.testRunResultsList.size}")
+        lastResponse.testRunResultsList.forEach {
+            logger.info("${it.testFilePath.substringAfterLast('/')}: name: ${it.testname} status: ${it.status}")
+        }
         CoverageDataManager.getInstance(project).processGatheredCoverage(conf, CoverageRunnerData())
     }
 

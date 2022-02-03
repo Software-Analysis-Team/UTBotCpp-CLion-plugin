@@ -7,12 +7,15 @@ import com.intellij.execution.configurations.SimpleConfigurationType;
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.NotNullLazyValue
+import mu.KotlinLogging
 
+private val log = KotlinLogging.logger {}
 class UTBotConfigurationType : SimpleConfigurationType(CONFIGURATION_NAME, NAME, NAME,
     NotNullLazyValue.createValue { AllIcons.Graph.Grid }
 ) {
 
     override fun createTemplateConfiguration(project: Project): RunConfiguration {
+        log.debug { "createTemplateConfiguration was celled" }
         return UTBotRunWithCoverageRunConfig(project, UTBotRunWithCoverageConfigFactory(this), "Template configuration")
     }
 

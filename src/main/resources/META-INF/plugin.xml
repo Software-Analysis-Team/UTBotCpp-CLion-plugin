@@ -18,6 +18,7 @@
         <projectService serviceImplementation="com.github.vol0n.utbotcppclion.services.ProjectSettings"/>
         <configurationType implementation="com.github.vol0n.utbotcppclion.RunConfig.UTBotConfigurationType"/>
         <coverageEngine implementation="com.github.vol0n.utbotcppclion.coverage.UTBotCoverageEngine"/>
+        <postStartupActivity implementation="com.github.vol0n.utbotcppclion.services.UTBotStartupActivity"/>
         <!--<projectService serviceImplementation="com.github.vol0n.utbotcppclion.services.Client"/> -->
         <projectConfigurable parentId="tools" instance="com.github.vol0n.utbotcppclion.services.UTBotConfigurable"
                              id="com.github.vol0n.utbotcppclion.services.UTBotConfigurable"
@@ -91,8 +92,5 @@
         <action id="com.github.vol0n.utbotcppclion.actions.AskServerToGenerateJsonForProjectConfiguration"
                 class="com.github.vol0n.utbotcppclion.actions.AskServerToGenerateJsonForProjectConfiguration" text="Try To Generate Json"
                 description="Ask server to generate missing json files"/>
-        <action id="com.github.vol0n.utbotcppclion.actions.RunWithCoverageAction"
-                class="com.github.vol0n.utbotcppclion.actions.RunWithCoverageAction" text="UTBot Run With Coverage"
-                description="Send request to UTBot to run test with coverage and show results"/>
     </actions>
 </idea-plugin>

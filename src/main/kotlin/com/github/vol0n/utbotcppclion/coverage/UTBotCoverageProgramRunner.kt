@@ -16,6 +16,7 @@ import com.intellij.openapi.diagnostic.Logger
 
 
 class UTBotCoverageProgramRunner : ProgramRunner<RunnerSettings> {
+    private val log = Logger.getInstance(this::class.java)
     override fun getRunnerId(): String {
         return COVERAGE_RUNNER_ID
     }
@@ -30,6 +31,7 @@ class UTBotCoverageProgramRunner : ProgramRunner<RunnerSettings> {
 
     @Throws(ExecutionException::class)
     override fun execute(environment: ExecutionEnvironment) {
+        log.debug("execute was called: ${environment.runProfile}, ${environment.state}")
         val conf = environment.runProfile as UTBotRunWithCoverageRunConfig
         val project = conf.project
         println(conf.pathToTestsFile ?: "Null")
@@ -38,9 +40,6 @@ class UTBotCoverageProgramRunner : ProgramRunner<RunnerSettings> {
     }
 
     companion object {
-        private val LOG = Logger.getInstance(
-            UTBotCoverageProgramRunner::class.java
-        )
         val COVERAGE_RUNNER_ID = UTBotCoverageProgramRunner::class.java.simpleName
     }
 }

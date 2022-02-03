@@ -4,6 +4,7 @@ import com.github.vol0n.utbotcppclion.actions.utils.convertFromRemotePathIfNeede
 import com.intellij.coverage.CoverageEngine
 import com.intellij.coverage.CoverageRunner
 import com.intellij.coverage.CoverageSuite
+import com.intellij.openapi.diagnostic.Logger
 import com.intellij.rt.coverage.data.LineData
 import com.intellij.rt.coverage.data.ProjectData
 import testsgen.Testgen
@@ -13,6 +14,7 @@ import java.nio.file.Files
 import java.nio.file.Paths
 
 class UTBotCoverageRunner : CoverageRunner() {
+    private val log = Logger.getInstance(this::class.java)
     private fun getLineCount(filePath: String): Int {
         var lineCount: Int
         Files.lines(Paths.get(filePath), StandardCharsets.UTF_8).use { stream -> lineCount = stream.count().toInt() }
@@ -20,6 +22,7 @@ class UTBotCoverageRunner : CoverageRunner() {
     }
 
     override fun loadCoverageData(sessionDataFile: File, baseCoverageSuite: CoverageSuite?): ProjectData? {
+        log.debug("loadCoverageData was called: ${sessionDataFile.name}")
         val coveragesList = (baseCoverageSuite as? UTBotCoverageSuite)?.coverageData ?: return null
         val projectData = ProjectData()
         var isAnyCoverage = false
@@ -57,6 +60,7 @@ class UTBotCoverageRunner : CoverageRunner() {
     }
 
     override fun getDataFileExtension(): String {
+        log.debug ( "getDataFileExtension was called" )
         return "txt"
     }
 

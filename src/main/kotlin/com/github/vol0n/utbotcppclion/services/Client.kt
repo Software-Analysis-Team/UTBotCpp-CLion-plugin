@@ -9,7 +9,6 @@ import com.github.vol0n.utbotcppclion.messaging.UTBotEventsListener
 import com.github.vol0n.utbotcppclion.ui.OutputType
 import com.github.vol0n.utbotcppclion.ui.UTBotConsole
 import com.intellij.openapi.Disposable
-import com.intellij.openapi.components.service
 
 import testsgen.Testgen
 
@@ -31,7 +30,6 @@ import kotlinx.coroutines.withContext
 import testsgen.TestsGenServiceGrpcKt
 
 import ch.qos.logback.classic.Logger
-//import com.intellij.openapi.diagnostic.Logger
 import com.github.vol0n.utbotcppclion.client.ClientLogAppender
 import com.github.vol0n.utbotcppclion.ui.OutputWindowProvider
 import com.intellij.ide.util.RunOnceUtil
@@ -93,10 +91,17 @@ class Client(val project: Project) : Disposable {
         grpcStub = io.grpc.stub.MetadataUtils.attachHeaders(stub, metadata)
         project.messageBus.connect()
             .subscribe(UTBotEventsListener.CONNECTION_CHANGED_TOPIC, object : UTBotEventsListener {
+                override fun onConnectionChange(oldStatus: ConnectionStatus, newStatus: ConnectionStatus) {
+                    if (oldStatus != newStatus && newStatus == ConnectionStatus.CONNECTED) {
+                        configureProject()
+                    }
+                }
                 override fun onHeartbeatSuccess(response: Testgen.HeartbeatResponse) {
                     RunOnceUtil.runOnceForProject(project, "UTBot: Register client for server") {
                         registerClient(clientID)
                     }
+
+
                     if (newClient || !response.linked) {
                         grpcCoroutineScope.launch {
                             provideLogChannel()
@@ -302,7 +307,7 @@ class Client(val project: Project) : Disposable {
                 logger.info("Sending request to get COVERAGE AND RESULTS: \n$request")
                 handler.handleCoverageAndResultsResponse(
                     grpcStub.createTestsCoverageAndResult(request),
-                    "Generate For Assertion"
+                    "Run Tests with Coverage"
                 )
             }
         }
