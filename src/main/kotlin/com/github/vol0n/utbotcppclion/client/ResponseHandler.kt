@@ -1,12 +1,11 @@
 package com.github.vol0n.utbotcppclion.client
 
-import com.github.vol0n.utbotcppclion.RunConfig.UTBotRunWithCoverageRunConfig
+import com.github.vol0n.utbotcppclion.RunConfig.UTBotRunWithCoverageConfig
 import com.github.vol0n.utbotcppclion.actions.AskServerToGenerateBuildDir
 import com.github.vol0n.utbotcppclion.actions.AskServerToGenerateJsonForProjectConfiguration
 import com.github.vol0n.utbotcppclion.actions.utils.notifyError
 import com.github.vol0n.utbotcppclion.actions.utils.notifyInfo
 import com.github.vol0n.utbotcppclion.actions.utils.notifyUnknownResponse
-import com.github.vol0n.utbotcppclion.coverage.UTBotCoverageProgramRunner
 import com.github.vol0n.utbotcppclion.messaging.UTBotTestResultsReceivedListener
 import com.github.vol0n.utbotcppclion.services.Client
 import com.github.vol0n.utbotcppclion.services.ProjectSettings
@@ -15,12 +14,10 @@ import com.github.vol0n.utbotcppclion.utils.createFileAndMakeDirs
 import com.github.vol0n.utbotcppclion.utils.refreshAndFindIOFile
 import com.intellij.coverage.CoverageDataManager
 import com.intellij.coverage.CoverageRunnerData
-import com.intellij.execution.runners.ProgramRunner
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
-import com.intellij.rt.coverage.data.CoverageData
 import kotlin.coroutines.coroutineContext
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
@@ -60,7 +57,7 @@ class ResponseHandle(val project: Project, val client: Client) {
         // when we received results, test statuses should be updated in the gutter
         project.messageBus.syncPublisher(UTBotTestResultsReceivedListener.TOPIC).testResultsReceived(lastResponse.testRunResultsList)
 
-        val conf = UTBotRunWithCoverageRunConfig(lastResponse.coveragesList, project, "Handle")
+        val conf = UTBotRunWithCoverageConfig(lastResponse.coveragesList, project, "Handle")
         logger.info("LAUNCHING PROCESSING OF COVERAGE")
 
         logger.info("coverage list size: ${lastResponse.coveragesList.size}")

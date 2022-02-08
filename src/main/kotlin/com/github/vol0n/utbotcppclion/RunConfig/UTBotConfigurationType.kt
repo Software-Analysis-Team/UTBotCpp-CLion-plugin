@@ -16,7 +16,7 @@ class UTBotConfigurationType : SimpleConfigurationType(CONFIGURATION_NAME, NAME,
 
     override fun createTemplateConfiguration(project: Project): RunConfiguration {
         log.debug { "createTemplateConfiguration was celled" }
-        return UTBotRunWithCoverageRunConfig(project, UTBotRunWithCoverageConfigFactory(this), "Template configuration")
+        return UTBotRunWithCoverageConfig(project, UTBotRunWithCoverageConfigFactory(this), "Template configuration")
     }
 
     override fun getTag(): String = NAME

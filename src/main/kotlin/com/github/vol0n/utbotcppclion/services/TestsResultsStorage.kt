@@ -2,6 +2,7 @@ package com.github.vol0n.utbotcppclion.services
 
 import com.github.vol0n.utbotcppclion.messaging.UTBotTestResultsReceivedListener
 import com.github.vol0n.utbotcppclion.models.TestNameAndTestSuite
+import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.Logger
@@ -31,14 +32,21 @@ class TestsResultsStorage(val project: Project) {
 
         connection.subscribe(VirtualFileManager.VFS_CHANGES, object : BulkFileListener {
             override fun after(events: MutableList<out VFileEvent>) {
+                var wasSave = false
                 events.forEach { event ->
+                    println("Listener received event: $event")
                     if (event.isFromSave) {
+                        wasSave = true
                         storage.forEach { entry ->
                             if (entry.value.testFilePath != event.path) {
                                 storage.remove(entry.key)
                             }
                         }
                     }
+                }
+                if (wasSave) {
+                    println("Restarting daemon code analyzer")
+                    DaemonCodeAnalyzer.getInstance(project).restart()
                 }
             }
         })

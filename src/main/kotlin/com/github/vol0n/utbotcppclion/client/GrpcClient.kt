@@ -1,15 +1,11 @@
 package com.github.vol0n.utbotcppclion.client
 
 import ch.qos.logback.classic.Logger
-import com.charleskorn.kaml.Yaml
 
 import io.grpc.ManagedChannel
 import io.grpc.ManagedChannelBuilder
 import testsgen.TestsGenServiceGrpcKt
 
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.decodeFromString
 import mu.KotlinLogging
 
 import java.io.Closeable
@@ -24,11 +20,11 @@ class GrpcClient(private val channel: ManagedChannel) : Closeable {
     }
 }
 
-@Serializable
+//@Serializable
 data class GrpcConfig(
-    @SerialName("grpc port")
+ //   @SerialName("grpc port")
     val grpcPort: Int,
-    @SerialName("grpc server name")
+  //  @SerialName("grpc server name")
     val grpcServerName: String
 )
 
@@ -36,15 +32,16 @@ private val log = KotlinLogging.logger(Logger.ROOT_LOGGER_NAME)
 object GrpcStarter {
     val port: Int
     val serverName: String
-    private val defaultConfig = GrpcConfig(50051, "localhost")
+    private val defaultConfig = GrpcConfig(2121, "localhost")
 
     init {
-        val configString = this::class.java.getResource("/config.yaml")?.readText()
-        val config: GrpcConfig = if (configString != null) {
-            Yaml.default.decodeFromString(configString)
-        } else {
-            defaultConfig
-        }
+    //    val configString = this::class.java.getResource("/config.yaml")?.readText()
+    //    val config: GrpcConfig = if (configString != null) {
+//            Yaml.default.decodeFromString(configString)
+//        } else {
+//            defaultConfig
+//        }
+        val config = defaultConfig
         port = config.grpcPort
         serverName = config.grpcServerName
     }

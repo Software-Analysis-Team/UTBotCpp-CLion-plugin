@@ -10,7 +10,7 @@ import com.intellij.openapi.options.SettingsEditor
 import com.intellij.openapi.project.Project
 import testsgen.Testgen
 
-class UTBotRunWithCoverageRunConfig(project: Project, factory: ConfigurationFactory?, name: String?) :
+class UTBotRunWithCoverageConfig(project: Project, factory: ConfigurationFactory?, name: String?) :
     RunConfigurationBase<UTBotRunConfigurationOptions?>(project, factory, name) {
     override fun getOptions(): UTBotRunConfigurationOptions {
         return super.getOptions() as UTBotRunConfigurationOptions

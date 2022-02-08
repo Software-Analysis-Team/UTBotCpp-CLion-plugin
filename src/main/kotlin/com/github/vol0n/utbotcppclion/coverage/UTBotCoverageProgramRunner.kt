@@ -1,6 +1,6 @@
 package com.github.vol0n.utbotcppclion.coverage
 
-import com.github.vol0n.utbotcppclion.RunConfig.UTBotRunWithCoverageRunConfig
+import com.github.vol0n.utbotcppclion.RunConfig.UTBotRunWithCoverageConfig
 import com.github.vol0n.utbotcppclion.actions.getCoverageAndResultsRequest
 import com.github.vol0n.utbotcppclion.services.Client
 import com.github.vol0n.utbotcppclion.services.ProjectSettings
@@ -22,7 +22,7 @@ class UTBotCoverageProgramRunner : ProgramRunner<RunnerSettings> {
     }
 
     override fun canRun(executorId: String, profile: RunProfile): Boolean {
-        return "Coverage" == executorId && profile is UTBotRunWithCoverageRunConfig
+        return "Coverage" == executorId && profile is UTBotRunWithCoverageConfig
     }
 
     override fun createConfigurationData(settingsProvider: ConfigurationInfoProvider): RunnerSettings {
@@ -32,7 +32,7 @@ class UTBotCoverageProgramRunner : ProgramRunner<RunnerSettings> {
     @Throws(ExecutionException::class)
     override fun execute(environment: ExecutionEnvironment) {
         log.debug("execute was called: ${environment.runProfile}, ${environment.state}")
-        val conf = environment.runProfile as UTBotRunWithCoverageRunConfig
+        val conf = environment.runProfile as UTBotRunWithCoverageConfig
         val project = conf.project
         println(conf.pathToTestsFile ?: "Null")
         val request = getCoverageAndResultsRequest(project.service<ProjectSettings>(), conf.pathToTestsFile!!)

@@ -5,7 +5,7 @@ import com.intellij.ui.layout.panel
 import javax.swing.JComponent
 import javax.swing.JPanel
 
-class UTBotRunConfigurationSettingsEditor : SettingsEditor<UTBotRunWithCoverageRunConfig>() {
+class UTBotRunConfigurationSettingsEditor : SettingsEditor<UTBotRunWithCoverageConfig>() {
     var pathToTestsFile: String = ""
     private val myPanel: JPanel = panel {
         row {
@@ -14,11 +14,11 @@ class UTBotRunConfigurationSettingsEditor : SettingsEditor<UTBotRunWithCoverageR
         }
     }
 
-    override fun resetEditorFrom(conf: UTBotRunWithCoverageRunConfig) {
+    override fun resetEditorFrom(conf: UTBotRunWithCoverageConfig) {
         pathToTestsFile = conf.pathToTestsFile ?: ""
     }
 
-    override fun applyEditorTo(conf: UTBotRunWithCoverageRunConfig) {
+    override fun applyEditorTo(conf: UTBotRunWithCoverageConfig) {
         conf.pathToTestsFile = pathToTestsFile
     }
 

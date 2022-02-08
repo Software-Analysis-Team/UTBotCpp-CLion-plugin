@@ -34,6 +34,8 @@ import com.github.vol0n.utbotcppclion.client.ClientLogAppender
 import com.github.vol0n.utbotcppclion.ui.OutputWindowProvider
 import com.intellij.ide.util.RunOnceUtil
 import com.intellij.openapi.components.Service
+import com.intellij.openapi.components.service
+import io.grpc.Status
 import mu.KotlinLogging
 
 enum class LogLevel(val id: String) {
@@ -44,8 +46,7 @@ enum class LogLevel(val id: String) {
 @Service
 class Client(val project: Project) : Disposable {
     private var connectionStatus = ConnectionStatus.INIT
-    private val connectionChangedPublisher =
-        project.messageBus.syncPublisher(UTBotEventsListener.CONNECTION_CHANGED_TOPIC)
+    private val messageBus = project.messageBus
     private var heartBeatJob: Job? = null
     private val metadata: io.grpc.Metadata = io.grpc.Metadata()
     private val handler = ResponseHandle(project, this)
@@ -55,10 +56,13 @@ class Client(val project: Project) : Disposable {
         private set
 
     private val logger = KotlinLogging.logger("ClientLogger")
+    init {
+        println("Client constructor was called!!!")
+    }
 
     init {
         (logger.underlyingLogger as Logger).getAppender("ClientAppender").let {
-            (it as ClientLogAppender).utBotConsole = OutputWindowProvider.getOutput(project, OutputType.CLIENT_LOG)
+            (it as ClientLogAppender).utBotConsole = project.service<OutputWindowProvider>().outputs[OutputType.CLIENT_LOG]
         }
     }
 
@@ -89,7 +93,7 @@ class Client(val project: Project) : Disposable {
         val clientID = generateClientID()
         metadata.put(io.grpc.Metadata.Key.of("clientid", io.grpc.Metadata.ASCII_STRING_MARSHALLER), clientID)
         grpcStub = io.grpc.stub.MetadataUtils.attachHeaders(stub, metadata)
-        project.messageBus.connect()
+        project.messageBus.connect(this)
             .subscribe(UTBotEventsListener.CONNECTION_CHANGED_TOPIC, object : UTBotEventsListener {
                 override fun onConnectionChange(oldStatus: ConnectionStatus, newStatus: ConnectionStatus) {
                     if (oldStatus != newStatus && newStatus == ConnectionStatus.CONNECTED) {
@@ -100,7 +104,6 @@ class Client(val project: Project) : Disposable {
                     RunOnceUtil.runOnceForProject(project, "UTBot: Register client for server") {
                         registerClient(clientID)
                     }
-
 
                     if (newClient || !response.linked) {
                         grpcCoroutineScope.launch {
@@ -121,7 +124,7 @@ class Client(val project: Project) : Disposable {
             logger.error(e.message)
         }
 
-        val gTestConsole: UTBotConsole = OutputWindowProvider.getOutput(project, OutputType.GTEST)
+        val gTestConsole: UTBotConsole = project.service<OutputWindowProvider>().outputs[OutputType.GTEST]!!
         grpcStub.openGTestChannel(request)
             .catch { exception ->
                 logger.error("Exception when opening gtest channel")
@@ -141,7 +144,7 @@ class Client(val project: Project) : Disposable {
             logger.error(e.message)
         }
 
-        val serverConsole: UTBotConsole = OutputWindowProvider.getOutput(project, OutputType.SERVER_LOG)
+        val serverConsole: UTBotConsole = project.service<OutputWindowProvider>().outputs[OutputType.SERVER_LOG]!!
         grpcStub.openLogChannel(request)
             .catch { exception ->
                 logger.error("Exception when opening log channel")
@@ -324,12 +327,18 @@ class Client(val project: Project) : Disposable {
     private suspend fun heartBeatOnce() {
         try {
             val response = grpcStub.heartbeat(Testgen.DummyRequest.newBuilder().build())
-            connectionChangedPublisher.onConnectionChange(connectionStatus, ConnectionStatus.CONNECTED)
-            connectionChangedPublisher.onHeartbeatSuccess(response)
-            connectionStatus = ConnectionStatus.CONNECTED
+            if (!messageBus.isDisposed) {
+                val connectionChangedPublisher = messageBus.syncPublisher(UTBotEventsListener.CONNECTION_CHANGED_TOPIC)
+                connectionChangedPublisher.onConnectionChange(connectionStatus, ConnectionStatus.CONNECTED)
+                connectionChangedPublisher.onHeartbeatSuccess(response)
+                connectionStatus = ConnectionStatus.CONNECTED
+            }
         } catch (e: Exception) {
             logger.error("Heartbeat failed with exception: \n${e.message}")
-            connectionChangedPublisher.onConnectionChange(connectionStatus, ConnectionStatus.BROKEN)
+            if (!messageBus.isDisposed) {
+                val connectionChangedPublisher = messageBus.syncPublisher(UTBotEventsListener.CONNECTION_CHANGED_TOPIC)
+                connectionChangedPublisher.onConnectionChange(connectionStatus, ConnectionStatus.BROKEN)
+            }
             connectionStatus = ConnectionStatus.BROKEN
         }
     }
@@ -340,10 +349,24 @@ class Client(val project: Project) : Disposable {
         const val HEARTBEAT_INTERVAL: Long = 500L
     }
 
+    fun handleGRPCStatusException(e: io.grpc.StatusException) {
+        logger.error("Exception when closing log and GTest channels")
+        logger.error(e.message)
+        when (e.status) {
+            Status.UNAVAILABLE -> logger.error("Server is unavailable: possibly it is shut down.")
+            Status.UNKNOWN -> logger.error("Server threw an exception.")
+        }
+    }
+
     override fun dispose() {
+        println("Dispose of client was called!!!")
         grpcCoroutineScope.launch {
-            grpcStub.closeLogChannel(getDummyRequest())
-            grpcStub.closeGTestChannel(getDummyRequest())
+            try {
+                grpcStub.closeLogChannel(getDummyRequest())
+                grpcStub.closeGTestChannel(getDummyRequest())
+            } catch (e: io.grpc.StatusException) {
+                handleGRPCStatusException(e)
+            }
             cancel()
         }
     }

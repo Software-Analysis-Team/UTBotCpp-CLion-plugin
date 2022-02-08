@@ -72,7 +72,7 @@ dependencies {
     implementation("io.github.microutils:kotlin-logging-jvm:2.1.20")
 
     // yaml
-    implementation("com.charleskorn.kaml:kaml:0.38.0")
+   // implementation("com.charleskorn.kaml:kaml:0.38.0")
 }
 
 protobuf {

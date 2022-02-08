@@ -22,8 +22,14 @@ class UTBotCoverageRunner : CoverageRunner() {
     }
 
     override fun loadCoverageData(sessionDataFile: File, baseCoverageSuite: CoverageSuite?): ProjectData? {
-        log.debug("loadCoverageData was called: ${sessionDataFile.name}")
-        val coveragesList = (baseCoverageSuite as? UTBotCoverageSuite)?.coverageData ?: return null
+        log.debug("loadCoverageData was called!")
+        val coveragesList = (baseCoverageSuite as? UTBotCoverageSuite)?.coveragesList
+        // maybe raise exception instead?
+        assert(coveragesList != null)
+        if (coveragesList == null) {
+            log.info("loadCoverageData was called with unexpected coverageSuite! $baseCoverageSuite")
+            return null
+        }
         val projectData = ProjectData()
         var isAnyCoverage = false
         for (simplifiedCovInfo in coveragesList) {
