@@ -25,8 +25,6 @@ import java.nio.file.Paths
 data class ProjectSettings(
     @com.intellij.util.xmlb.annotations.Transient
     val project: Project? = null,
-
-
     ) : PersistentStateComponent<ProjectSettings> {
     @com.intellij.util.xmlb.annotations.Transient
     val logger = Logger.getInstance(this::class.java)

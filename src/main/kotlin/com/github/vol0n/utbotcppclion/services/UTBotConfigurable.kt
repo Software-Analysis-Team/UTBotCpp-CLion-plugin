@@ -9,6 +9,7 @@ import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.options.BoundConfigurable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogPanel
+import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.ui.CollectionListModel
 import com.intellij.ui.ToolbarDecorator
 import com.intellij.ui.layout.panel
@@ -40,6 +41,9 @@ class UTBotConfigurable(private val targetProject: Project) : BoundConfigurable(
 
     fun createMainPanel(): DialogPanel {
         logger.info("createPanel was called")
+        fun TextFieldWithBrowseButton.setMaxSize() {
+            maximumSize = Dimension(370, 100)
+        }
         return panel {
             row {
                 label(UTBot.message("settings.project.buildDir"))
@@ -47,11 +51,8 @@ class UTBotConfigurable(private val targetProject: Project) : BoundConfigurable(
                     projectSettings::buildDirPath,
                     UTBot.message("settings.project.buildDir.browse.title"),
                     targetProject, FileChooserDescriptorFactory.createSingleFileDescriptor()
-                ) { folder ->
-                    projectSettings.buildDirPath = folder.path
-                    folder.path
-                }.component.apply {
-                    this.maximumSize = Dimension(370, 100)
+                ).component.apply {
+                    setMaxSize()
                     onApplyCallBacks.add { projectSettings.buildDirPath = this.text }
                     onResetCallBacks.add { this.text = projectSettings.buildDirPath }
                 }
@@ -67,7 +68,7 @@ class UTBotConfigurable(private val targetProject: Project) : BoundConfigurable(
                     projectSettings.targetPath = file.path
                     file.path
                 }.component.apply {
-                    this.maximumSize = Dimension(370, 100)
+                    setMaxSize()
                     onApplyCallBacks.add { projectSettings.targetPath = this.text }
                     onResetCallBacks.add { this.text = projectSettings.targetPath }
                 }
@@ -83,7 +84,7 @@ class UTBotConfigurable(private val targetProject: Project) : BoundConfigurable(
                     projectSettings.testDirPath = folder.path
                     folder.path
                 }.component.apply {
-                    this.maximumSize = Dimension(370, 100)
+                    setMaxSize()
                     onApplyCallBacks.add { projectSettings.testDirPath = this.text }
                     onResetCallBacks.add { this.text = projectSettings.testDirPath }
                 }
