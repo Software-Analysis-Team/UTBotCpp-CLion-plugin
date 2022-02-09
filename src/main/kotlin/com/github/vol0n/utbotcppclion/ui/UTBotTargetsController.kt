@@ -67,8 +67,6 @@ class UTBotTargetsController(val project: Project) {
         }
     }
 
-    fun getCurrentTargetPath() = projectSettings.targetPath
-
     private fun connectToEvents() {
         // when new targets are specified in CMakeLists, the view should be updated, it is done on after reloading
         project.messageBus.connect().subscribe(CMakeWorkspaceListener.TOPIC, object : CMakeWorkspaceListener {

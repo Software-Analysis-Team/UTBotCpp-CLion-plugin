@@ -1,7 +1,6 @@
 package com.github.vol0n.utbotcppclion.ui
 
 
-import com.intellij.icons.AllIcons
 import com.intellij.openapi.ui.SimpleToolWindowPanel
 import com.intellij.ui.CollectionListModel
 import com.intellij.ui.ColoredListCellRenderer
@@ -39,14 +38,6 @@ class UTBotTargetsToolWindow(
             selected: Boolean,
             hasFocus: Boolean
         ) {
-            /*
-            icon = if (target.targetAbsolutePath == controller.getCurrentTargetPath()) {
-                list.selectedIndex = index
-                AllIcons.Icons.Ide.MenuArrowSelected;
-            } else {
-                null
-            }
-             */
             append(target.name, SimpleTextAttributes.REGULAR_BOLD_ATTRIBUTES);
             append(" ")
             append(target.description, SimpleTextAttributes.GRAYED_ATTRIBUTES);

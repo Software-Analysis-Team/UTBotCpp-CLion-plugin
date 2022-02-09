@@ -36,7 +36,6 @@ class UTBotCoverageSuite(
     override fun deleteCachedCoverageData() {}
 
     override fun loadProjectInfo(): ProjectData? {
-        println("loadProjectInfo of UTBotCovSuite was called!")
         val startNs = System.nanoTime()
         val projectData = covRunner?.loadCoverageData(File(""), this)
         val timeMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNs)

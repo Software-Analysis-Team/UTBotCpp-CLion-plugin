@@ -1,7 +1,6 @@
 package com.github.vol0n.utbotcppclion.server
 
 import ch.qos.logback.classic.Logger
-import com.github.vol0n.utbotcppclion.client.GrpcStarter
 
 import testsgen.Testgen
 import testsgen.TestsGenServiceGrpcKt
@@ -13,9 +12,7 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.isActive
 import kotlinx.coroutines.isActive
-import mu.KotlinLogging
 import org.slf4j.LoggerFactory
 
 import java.io.File
@@ -242,7 +239,7 @@ class Server(private val port: Int) {
 }
 
 fun main() {
-    val port = GrpcStarter.port
+    val port = 2021
     val server = Server(port)
     server.start()
     server.blockUntilShutdown()

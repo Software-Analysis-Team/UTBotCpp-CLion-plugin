@@ -35,6 +35,8 @@ data class ProjectSettings(
     var synchronizeCode: Boolean = false
     var remotePath: String = "/"
     var sourcePaths: List<String> = emptyList()
+    var port: Int = 2121
+    var serverName: String = "localhost"
 
     init {
         logger.info("ProjectSettings instance's constructor is called: project == $project")
@@ -147,12 +149,6 @@ data class ProjectSettings(
             // try to get all source paths, so user does not have to choose them by hand in settings
             sourcePaths = getSourceFoldersFromSources(cmakeConfiguration.sources)
             targetPath = UTBotTarget.UTBOT_AUTO_TARGET.targetAbsolutePath
-            /* пока что работает только авто таргет, с другими сервер не работает
-            targetPath = cmakeConfiguration.productFile?.absolutePath ?: let {
-                couldNotGetItem("targetPath")
-                "/"
-            }
-             */
             buildDirPath = cmakeConfiguration.buildWorkingDir.absolutePath
         } else {
             notifyError("CMake is unavailable: automatic configuration failed")

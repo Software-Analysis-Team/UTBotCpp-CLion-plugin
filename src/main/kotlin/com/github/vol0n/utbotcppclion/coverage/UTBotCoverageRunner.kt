@@ -27,7 +27,7 @@ class UTBotCoverageRunner : CoverageRunner() {
         // maybe raise exception instead?
         assert(coveragesList != null)
         if (coveragesList == null) {
-            log.info("loadCoverageData was called with unexpected coverageSuite! $baseCoverageSuite")
+            log.warn("loadCoverageData was called with unexpected coverageSuite! $baseCoverageSuite")
             return null
         }
         val projectData = ProjectData()

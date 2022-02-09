@@ -2,7 +2,6 @@ package com.github.vol0n.utbotcppclion.services
 
 import com.github.vol0n.utbotcppclion.actions.getDummyRequest
 import com.github.vol0n.utbotcppclion.actions.getProjectConfigRequestMessage
-import com.github.vol0n.utbotcppclion.client.GrpcStarter
 import com.github.vol0n.utbotcppclion.client.ResponseHandle
 import com.github.vol0n.utbotcppclion.messaging.ConnectionStatus
 import com.github.vol0n.utbotcppclion.messaging.UTBotEventsListener
@@ -31,6 +30,7 @@ import testsgen.TestsGenServiceGrpcKt
 
 import ch.qos.logback.classic.Logger
 import com.github.vol0n.utbotcppclion.client.ClientLogAppender
+import com.github.vol0n.utbotcppclion.client.GrpcClient
 import com.github.vol0n.utbotcppclion.ui.OutputWindowProvider
 import com.intellij.ide.util.RunOnceUtil
 import com.intellij.openapi.components.Service
@@ -52,8 +52,7 @@ class Client(val project: Project) : Disposable {
     private val handler = ResponseHandle(project, this)
     private var logLevel: LogLevel = LogLevel.INFO
     private var newClient = true
-    var isPluginStarted = false
-        private set
+    private val settings = project.service<ProjectSettings>()
 
     private val logger = KotlinLogging.logger("ClientLogger")
     init {
@@ -88,8 +87,8 @@ class Client(val project: Project) : Disposable {
     }
 
     init {
-        logger.info("Connecting to server on host: ${GrpcStarter.serverName} , port: ${GrpcStarter.port}")
-        val stub = GrpcStarter.startClient().stub
+        logger.info("Connecting to server on host: ${settings.serverName} , port: ${settings.port}")
+        val stub = GrpcClient(settings.port, settings.serverName).stub
         val clientID = generateClientID()
         metadata.put(io.grpc.Metadata.Key.of("clientid", io.grpc.Metadata.ASCII_STRING_MARSHALLER), clientID)
         grpcStub = io.grpc.stub.MetadataUtils.attachHeaders(stub, metadata)

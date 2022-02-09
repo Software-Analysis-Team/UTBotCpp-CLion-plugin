@@ -58,16 +58,16 @@ class ResponseHandle(val project: Project, val client: Client) {
         project.messageBus.syncPublisher(UTBotTestResultsReceivedListener.TOPIC).testResultsReceived(lastResponse.testRunResultsList)
 
         val conf = UTBotRunWithCoverageConfig(lastResponse.coveragesList, project, "Handle")
-        logger.info("LAUNCHING PROCESSING OF COVERAGE")
+        logger.debug("LAUNCHING PROCESSING OF COVERAGE")
 
-        logger.info("coverage list size: ${lastResponse.coveragesList.size}")
+        logger.debug("coverage list size: ${lastResponse.coveragesList.size}")
         lastResponse.coveragesList.forEach {
             logger.info("${it.filePath.substringAfterLast('/')}: ${it.coveredRangesList.size} ${it.uncoveredRangesList.size}")
         }
 
-        logger.info("test results list size: ${lastResponse.testRunResultsList.size}")
+        logger.debug("test results list size: ${lastResponse.testRunResultsList.size}")
         lastResponse.testRunResultsList.forEach {
-            logger.info("${it.testFilePath.substringAfterLast('/')}: name: ${it.testname} status: ${it.status}")
+            logger.debug("${it.testFilePath.substringAfterLast('/')}: name: ${it.testname} status: ${it.status}")
         }
         CoverageDataManager.getInstance(project).processGatheredCoverage(conf, CoverageRunnerData())
     }
@@ -95,11 +95,7 @@ class ResponseHandle(val project: Project, val client: Client) {
     private fun handleProgress(
         serverProgress: Util.Progress,
         uiProgress: UTBotRequestProgressIndicator,
-        onCompleted: () -> Unit = {}
     ) {
-        if (serverProgress.completed) {
-            onCompleted()
-        }
         // update progress in status bar
         uiProgress.fraction = serverProgress.percent
         uiProgress.text = serverProgress.message + "..."

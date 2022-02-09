@@ -9,10 +9,10 @@ import com.intellij.psi.PsiElement
 
 class RunWithCoverageAction(val element: PsiElement) : AnAction() {
     override fun actionPerformed(e: AnActionEvent) {
-        log.info("Action RunWithCoverageAction was called")
+        log.debug("Action RunWithCoverageAction was called")
         if (element.containingFile == null)
             return
-        log.info("psi element is valid: containing file not null")
+        log.debug("psi element is valid: containing file not null")
         val testArgs = TestNameAndTestSuite.getFromPsiElement(element)
         val suiteName = testArgs.suite
         val testedMethodName = testArgs.name

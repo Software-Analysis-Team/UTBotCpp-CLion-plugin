@@ -8,6 +8,10 @@ import com.github.vol0n.utbotcppclion.ui.UTBotConsole
 import com.intellij.execution.ui.ConsoleViewContentType
 import java.io.IOException
 
+/**
+ * This appender is used to output logs in [Client] class to
+ * output window in CLion, which is [UTBotConsole].
+ */
 class ClientLogAppender : AppenderBase<ILoggingEvent?>() {
     var encoder: PatternLayoutEncoder? = null
     var utBotConsole: UTBotConsole? = null
@@ -26,7 +30,6 @@ class ClientLogAppender : AppenderBase<ILoggingEvent?>() {
 
 
     override fun append(event: ILoggingEvent?) {
-        // output the events as formatted by our layout
         val console = utBotConsole ?: return
         encoder?.encode(event)?.decodeToString()?.let {
             val type = when (event?.level) {

@@ -106,7 +106,8 @@ class UTBotConfigurable(private val targetProject: Project) : BoundConfigurable(
             }
             val intFields = mapOf(
                 UTBot.message("settings.generation.timeoutFunction") to generatorSettings::timeoutPerFunction,
-                UTBot.message("settings.generation.timeoutTest") to generatorSettings::timeoutPerTest
+                UTBot.message("settings.generation.timeoutTest") to generatorSettings::timeoutPerTest,
+                UTBot.message("settings.project.port") to projectSettings::port
             )
             intFields.forEach { (message, intProperty) ->
                 row(message) {
@@ -115,6 +116,12 @@ class UTBotConfigurable(private val targetProject: Project) : BoundConfigurable(
                         onApplyCallBacks.add { intProperty.set(this.text.toInt()) }
                         onResetCallBacks.add { this.text = intProperty.get().toString() }
                     }
+                }
+            }
+            row(UTBot.message("settings.project.serverName")) {
+                textField(projectSettings::serverName).component.apply {
+                    onResetCallBacks.add { this.text = projectSettings.serverName }
+                    onApplyCallBacks.add { projectSettings.serverName = this.text }
                 }
             }
             row(UTBot.message("settings.project.sourcePaths")) {

@@ -30,7 +30,7 @@ class ConsoleToolWindowProvider : ToolWindowFactory {
     private val logger = Logger.getInstance(this::class.java)
 
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
-        logger.info("createToolWindowContent was called")
+        logger.debug("createToolWindowContent was called")
         val contentManager = toolWindow.contentManager
         val content =
             contentManager.factory.createContent(ConsoleToolWindow(project), null, false)

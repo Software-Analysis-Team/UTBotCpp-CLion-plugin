@@ -28,7 +28,7 @@ class UTBotCoverageAnnotator(project: Project?) : SimpleCoverageAnnotator(projec
         currentSuite: CoverageSuitesBundle,
         manager: CoverageDataManager
     ): String? {
-        log.info("getDirCoverage: $directory")
+        log.debug("getDirCoverage: $directory")
         val coverageInfo = getDirCoverageInfo(directory, currentSuite) ?: return null
 
         return if (manager.isSubCoverageActive) {
@@ -57,7 +57,7 @@ class UTBotCoverageAnnotator(project: Project?) : SimpleCoverageAnnotator(projec
         }
 
     override fun getLinesCoverageInformationString(info: FileCoverageInfo): String? {
-        log.info("getLinesCoverageInformationString: ${info}")
+        log.debug("getLinesCoverageInformationString: ${info}")
         return when {
             info.totalLineCount == 0 -> null
             info.coveredLineCount == 0 -> CoverageBundle.message("lines.covered.info.not.covered")
@@ -73,7 +73,7 @@ class UTBotCoverageAnnotator(project: Project?) : SimpleCoverageAnnotator(projec
         dataManager: CoverageDataManager,
         suite: CoverageSuitesBundle?
     ): Array<VirtualFile> {
-        log.info("getRoots was called: ${suite?.coverageData}")
+        log.debug("getRoots was called: ${suite?.coverageData}")
         return emptyArray()
     }
 }

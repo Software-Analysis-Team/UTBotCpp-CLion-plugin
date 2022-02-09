@@ -41,7 +41,7 @@ class UTBotCoverageEngine : CoverageEngine() {
         oldToNewConverter: Function<in Int, Int>?,
         subCoverageActive: Boolean
     ): CoverageLineMarkerRenderer {
-        log.info("getLineMarkerRenderer was called! Classname: $className, line: $lineNumber, lines: $lines")
+        log.debug("getLineMarkerRenderer was called! Classname: $className, line: $lineNumber, lines: $lines")
         return super.getLineMarkerRenderer(
             lineNumber,
             className,
@@ -86,7 +86,7 @@ class UTBotCoverageEngine : CoverageEngine() {
     ): CoverageSuite? {
         val utbotFileProvider = (coverageDataFileProvider as? UTBotCoverageFileProvider)
         if (utbotFileProvider == null) {
-            log.info("createCoverageSuite was called with unexpected coverageDataFileProvider!")
+            log.debug("createCoverageSuite was called with unexpected coverageDataFileProvider!")
             return null
         }
         return UTBotCoverageSuite(
@@ -103,7 +103,7 @@ class UTBotCoverageEngine : CoverageEngine() {
     ): CoverageSuite? {
         val utBotRunWithCoverageConfig = config.configuration as? UTBotRunWithCoverageConfig
         if (utBotRunWithCoverageConfig == null) {
-            log.info("createCoverageSuite was called with unexpected CoverageEnabledConfiguration!")
+            log.debug("createCoverageSuite was called with unexpected CoverageEnabledConfiguration!")
             return null
         }
         return UTBotCoverageSuite(
@@ -116,7 +116,7 @@ class UTBotCoverageEngine : CoverageEngine() {
     }
 
     override fun createEmptyCoverageSuite(coverageRunner: CoverageRunner): CoverageSuite? {
-        log.info("createEmptyCoverageSuite was called!")
+        log.debug("createEmptyCoverageSuite was called!")
         return null
     }
 
@@ -131,14 +131,14 @@ class UTBotCoverageEngine : CoverageEngine() {
     ) = false
 
     override fun getQualifiedNames(sourceFile: PsiFile): MutableSet<String> {
-        log.info("getQualifiedNames was called: $sourceFile")
+        log.debug("getQualifiedNames was called: $sourceFile")
         return provideQualifiedName(sourceFile)?.let {
             mutableSetOf(it)
         } ?: mutableSetOf()
     }
 
     override fun getQualifiedName(outputFile: File, sourceFile: PsiFile): String {
-        log.info("getQualifiedName was called: $sourceFile")
+        log.debug("getQualifiedName was called: $sourceFile")
         return outputFile.absolutePath
     }
 
@@ -150,7 +150,7 @@ class UTBotCoverageEngine : CoverageEngine() {
     ) = false
 
     override fun acceptedByFilters(psiFile: PsiFile, suite: CoverageSuitesBundle): Boolean {
-        log.info("acceptedByFilters: $psiFile, ${suite.coverageData}")
+        log.debug("acceptedByFilters: $psiFile, ${suite.coverageData}")
        return true
     }
 
@@ -158,13 +158,13 @@ class UTBotCoverageEngine : CoverageEngine() {
         mutableListOf()
 
     override fun findTestsByNames(testNames: Array<out String>, project: Project): MutableList<PsiElement> {
-        log.info("findTestsByNames was called: $testNames")
+        log.debug("findTestsByNames was called: $testNames")
         return mutableListOf()
     }
 
 
     override fun getTestMethodName(element: PsiElement, testProxy: AbstractTestProxy): String? {
-        log.info("getTestMethodName: ${element.text}, testProxy: ${testProxy.allTests}")
+        log.debug("getTestMethodName: ${element.text}, testProxy: ${testProxy.allTests}")
         return null
     }
 
