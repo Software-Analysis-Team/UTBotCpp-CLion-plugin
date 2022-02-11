@@ -16,7 +16,6 @@
                                             implementationClass="com.github.vol0n.utbotcppclion.ui.UTBotTestRunLineMarkerProvider"/>
         <projectService serviceImplementation="com.github.vol0n.utbotcppclion.services.GeneratorSettings"/>
         <projectService serviceImplementation="com.github.vol0n.utbotcppclion.services.ProjectSettings"/>
-        <configurationType implementation="com.github.vol0n.utbotcppclion.RunConfig.UTBotConfigurationType"/>
         <coverageEngine implementation="com.github.vol0n.utbotcppclion.coverage.UTBotCoverageEngine"/>
         <postStartupActivity implementation="com.github.vol0n.utbotcppclion.services.UTBotStartupActivity"/>
         <!--<projectService serviceImplementation="com.github.vol0n.utbotcppclion.services.Client"/> -->
@@ -26,8 +25,6 @@
                              nonDefaultProject="true"/>
         <notificationGroup id="Custom Notification Group" displayType="BALLOON"/>
 
-        <programRunner
-                implementation="com.github.vol0n.utbotcppclion.coverage.UTBotCoverageProgramRunner"/>
         <coverageEngine implementation="com.github.vol0n.utbotcppclion.coverage.UTBotCoverageEngine"/>
         <coverageRunner implementation="com.github.vol0n.utbotcppclion.coverage.UTBotCoverageRunner"/>
         <projectService serviceImplementation="com.github.vol0n.utbotcppclion.coverage.UTBotCoverageAnnotator"/>

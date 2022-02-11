@@ -1,6 +1,5 @@
 package com.github.vol0n.utbotcppclion.coverage
 
-import com.github.vol0n.utbotcppclion.RunConfig.UTBotRunWithCoverageConfig
 import com.github.vol0n.utbotcppclion.utils.isCPPFileName
 import com.intellij.coverage.CoverageAnnotator
 import com.intellij.coverage.CoverageEngine
@@ -29,7 +28,7 @@ class UTBotCoverageEngine : CoverageEngine() {
         internal fun provideQualifiedName(sourceFile: PsiFile): String? = sourceFile.virtualFile?.path
     }
 
-    override fun isApplicableTo(conf: RunConfigurationBase<*>) = conf is UTBotRunWithCoverageConfig
+    override fun isApplicableTo(conf: RunConfigurationBase<*>) = false
 
     override fun getLineMarkerRenderer(
         lineNumber: Int,
@@ -66,12 +65,9 @@ class UTBotCoverageEngine : CoverageEngine() {
     override fun canHavePerTestCoverage(conf: RunConfigurationBase<*>) = false
 
     override fun createCoverageEnabledConfiguration(conf: RunConfigurationBase<*>): CoverageEnabledConfiguration {
-        return UTBotCoverageEnabledConfiguration(conf as UTBotRunWithCoverageConfig)
+        return UTBotCoverageEnabledConfiguration(conf)
     }
 
-    // this method is called in DataCoverageManager.addSuite(final String name, final CoverageFileProvider fileProvider, ...)
-    // and DataCoverageManager.addExternalSuite(...)
-    // information about coverage is stored in UTBotRunWithCoverageConfig, it is converted into
     override fun createCoverageSuite(
         covRunner: CoverageRunner,
         name: String,
@@ -82,7 +78,7 @@ class UTBotCoverageEngine : CoverageEngine() {
         coverageByTestEnabled: Boolean,
         tracingEnabled: Boolean,
         trackTestFolders: Boolean,
-        project: Project?
+        project: Project
     ): CoverageSuite? {
         val utbotFileProvider = (coverageDataFileProvider as? UTBotCoverageFileProvider)
         if (utbotFileProvider == null) {
@@ -90,7 +86,7 @@ class UTBotCoverageEngine : CoverageEngine() {
             return null
         }
         return UTBotCoverageSuite(
-            this, name, utbotFileProvider, lastCoverageTimeStamp,
+            this, null, name, utbotFileProvider, lastCoverageTimeStamp,
             coverageByTestEnabled, tracingEnabled, tracingEnabled, covRunner, project
         )
     }
@@ -100,17 +96,11 @@ class UTBotCoverageEngine : CoverageEngine() {
         name: String,
         coverageDataFileProvider: CoverageFileProvider,
         config: CoverageEnabledConfiguration
-    ): CoverageSuite? {
-        val utBotRunWithCoverageConfig = config.configuration as? UTBotRunWithCoverageConfig
-        if (utBotRunWithCoverageConfig == null) {
-            log.debug("createCoverageSuite was called with unexpected CoverageEnabledConfiguration!")
-            return null
-        }
+    ): CoverageSuite {
         return UTBotCoverageSuite(
             this,
             coverageRunner = covRunner,
             name = name,
-            utbotFileProvider = UTBotCoverageFileProvider(utBotRunWithCoverageConfig),
             project = config.configuration.project
         )
     }

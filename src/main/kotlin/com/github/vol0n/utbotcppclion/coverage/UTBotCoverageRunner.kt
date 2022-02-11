@@ -66,7 +66,7 @@ class UTBotCoverageRunner : CoverageRunner() {
     }
 
     override fun getDataFileExtension(): String {
-        log.debug ( "getDataFileExtension was called" )
+        log.debug ("getDataFileExtension was called")
         return "txt"
     }
 

@@ -1,11 +1,13 @@
 package com.github.vol0n.utbotcppclion.client
 
-import com.github.vol0n.utbotcppclion.RunConfig.UTBotRunWithCoverageConfig
 import com.github.vol0n.utbotcppclion.actions.AskServerToGenerateBuildDir
 import com.github.vol0n.utbotcppclion.actions.AskServerToGenerateJsonForProjectConfiguration
 import com.github.vol0n.utbotcppclion.actions.utils.notifyError
 import com.github.vol0n.utbotcppclion.actions.utils.notifyInfo
 import com.github.vol0n.utbotcppclion.actions.utils.notifyUnknownResponse
+import com.github.vol0n.utbotcppclion.coverage.UTBotCoverageEngine
+import com.github.vol0n.utbotcppclion.coverage.UTBotCoverageRunner
+import com.github.vol0n.utbotcppclion.coverage.UTBotCoverageSuite
 import com.github.vol0n.utbotcppclion.messaging.UTBotTestResultsReceivedListener
 import com.github.vol0n.utbotcppclion.services.Client
 import com.github.vol0n.utbotcppclion.services.ProjectSettings
@@ -13,7 +15,8 @@ import com.github.vol0n.utbotcppclion.ui.UTBotRequestProgressIndicator
 import com.github.vol0n.utbotcppclion.utils.createFileAndMakeDirs
 import com.github.vol0n.utbotcppclion.utils.refreshAndFindIOFile
 import com.intellij.coverage.CoverageDataManager
-import com.intellij.coverage.CoverageRunnerData
+import com.intellij.coverage.CoverageEngine
+import com.intellij.coverage.CoverageRunner
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.Logger
@@ -26,7 +29,7 @@ import kotlinx.coroutines.flow.collect
 import testsgen.Testgen
 import testsgen.Util
 
-class ResponseHandle(val project: Project, val client: Client) {
+class ResponseHandler(val project: Project, val client: Client) {
     private val projectSettings: ProjectSettings = project.service()
     private val logger = Logger.getInstance(this::class.java)
 
@@ -57,7 +60,6 @@ class ResponseHandle(val project: Project, val client: Client) {
         // when we received results, test statuses should be updated in the gutter
         project.messageBus.syncPublisher(UTBotTestResultsReceivedListener.TOPIC).testResultsReceived(lastResponse.testRunResultsList)
 
-        val conf = UTBotRunWithCoverageConfig(lastResponse.coveragesList, project, "Handle")
         logger.debug("LAUNCHING PROCESSING OF COVERAGE")
 
         logger.debug("coverage list size: ${lastResponse.coveragesList.size}")
@@ -69,7 +71,16 @@ class ResponseHandle(val project: Project, val client: Client) {
         lastResponse.testRunResultsList.forEach {
             logger.debug("${it.testFilePath.substringAfterLast('/')}: name: ${it.testname} status: ${it.status}")
         }
-        CoverageDataManager.getInstance(project).processGatheredCoverage(conf, CoverageRunnerData())
+        val engine = CoverageEngine.EP_NAME.findExtension(UTBotCoverageEngine::class.java) ?: error("engine is null")
+        val coverageRunner = CoverageRunner.getInstance(UTBotCoverageRunner::class.java)
+        val manager = CoverageDataManager.getInstance(project)
+        val suite = UTBotCoverageSuite(engine,
+            lastResponse.coveragesList,
+            coverageRunner = coverageRunner,
+            name = "UTBot coverage suite",
+            project = project
+        )
+        manager.coverageGathered(suite)
     }
 
     private fun handleStubsResponse(response: Testgen.StubsResponse, uiProgress: UTBotRequestProgressIndicator) {

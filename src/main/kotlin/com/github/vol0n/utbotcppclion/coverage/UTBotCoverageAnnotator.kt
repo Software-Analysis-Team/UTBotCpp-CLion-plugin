@@ -10,7 +10,6 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiDirectory
 import com.intellij.psi.PsiFile
-import mu.KotlinLogging
 import java.io.File
 
 class UTBotCoverageAnnotator(project: Project?) : SimpleCoverageAnnotator(project) {

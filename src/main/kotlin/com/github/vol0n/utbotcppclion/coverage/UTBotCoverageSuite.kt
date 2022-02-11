@@ -6,20 +6,22 @@ import com.intellij.coverage.CoverageLogger
 import com.intellij.coverage.CoverageRunner
 import com.intellij.openapi.project.Project
 import com.intellij.rt.coverage.data.ProjectData
+import testsgen.Testgen
 import java.io.File
 import java.util.*
 import java.util.concurrent.TimeUnit
 
 class UTBotCoverageSuite(
     coverageEngine: UTBotCoverageEngine,
+    covLists: List<Testgen.FileCoverageSimplified>? = null,
     name: String? = null,
-    utbotFileProvider: UTBotCoverageFileProvider,
+    utbotFileProvider: UTBotCoverageFileProvider? = UTBotCoverageFileProvider(),
     lastCoverageTimeStamp: Long = Date().time,
-    coverageByTestEnabled: Boolean = true,
-    tracingEnabled: Boolean = true,
-    trackTestFolders: Boolean = true,
+    coverageByTestEnabled: Boolean = false,
+    tracingEnabled: Boolean = false,
+    trackTestFolders: Boolean = false,
     coverageRunner: CoverageRunner? = null,
-    project: Project? = null,
+    project: Project,
 ) : BaseCoverageSuite(
     name, utbotFileProvider, lastCoverageTimeStamp, coverageByTestEnabled, tracingEnabled, trackTestFolders,
     coverageRunner, project
@@ -27,7 +29,7 @@ class UTBotCoverageSuite(
 
     val covEngine = coverageEngine
     val covRunner = coverageRunner
-    val coveragesList = utbotFileProvider.config.coveragesList
+    val coveragesList: List<Testgen.FileCoverageSimplified>? = covLists
 
     override fun getCoverageEngine(): CoverageEngine {
         return covEngine

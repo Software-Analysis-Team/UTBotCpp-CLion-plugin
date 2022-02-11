@@ -1,9 +1,8 @@
 package com.github.vol0n.utbotcppclion.coverage
 
-import com.github.vol0n.utbotcppclion.RunConfig.UTBotRunWithCoverageConfig
 import com.intellij.coverage.CoverageFileProvider
 
-class UTBotCoverageFileProvider(val config: UTBotRunWithCoverageConfig) : CoverageFileProvider {
+class UTBotCoverageFileProvider : CoverageFileProvider {
     override fun getCoverageDataFilePath(): String {
         return ""
     }
@@ -16,4 +15,3 @@ class UTBotCoverageFileProvider(val config: UTBotRunWithCoverageConfig) : Covera
         return true
     }
 }
-

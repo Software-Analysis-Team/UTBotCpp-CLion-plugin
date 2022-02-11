@@ -2,7 +2,7 @@ package com.github.vol0n.utbotcppclion.services
 
 import com.github.vol0n.utbotcppclion.actions.getDummyRequest
 import com.github.vol0n.utbotcppclion.actions.getProjectConfigRequestMessage
-import com.github.vol0n.utbotcppclion.client.ResponseHandle
+import com.github.vol0n.utbotcppclion.client.ResponseHandler
 import com.github.vol0n.utbotcppclion.messaging.ConnectionStatus
 import com.github.vol0n.utbotcppclion.messaging.UTBotEventsListener
 import com.github.vol0n.utbotcppclion.ui.OutputType
@@ -49,7 +49,7 @@ class Client(val project: Project) : Disposable {
     private val messageBus = project.messageBus
     private var heartBeatJob: Job? = null
     private val metadata: io.grpc.Metadata = io.grpc.Metadata()
-    private val handler = ResponseHandle(project, this)
+    private val handler = ResponseHandler(project, this)
     private var logLevel: LogLevel = LogLevel.INFO
     private var newClient = true
     private val settings = project.service<ProjectSettings>()
