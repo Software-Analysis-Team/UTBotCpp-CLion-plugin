@@ -10,7 +10,7 @@ import com.github.vol0n.utbotcppclion.coverage.UTBotCoverageRunner
 import com.github.vol0n.utbotcppclion.coverage.UTBotCoverageSuite
 import com.github.vol0n.utbotcppclion.messaging.UTBotTestResultsReceivedListener
 import com.github.vol0n.utbotcppclion.services.Client
-import com.github.vol0n.utbotcppclion.services.ProjectSettings
+import com.github.vol0n.utbotcppclion.services.UTBotSettings
 import com.github.vol0n.utbotcppclion.ui.UTBotRequestProgressIndicator
 import com.github.vol0n.utbotcppclion.utils.createFileAndMakeDirs
 import com.github.vol0n.utbotcppclion.utils.refreshAndFindIOFile
@@ -29,8 +29,11 @@ import kotlinx.coroutines.flow.collect
 import testsgen.Testgen
 import testsgen.Util
 
+/**
+ * Handles test responses, and also project configuration responses.
+ */
 class ResponseHandler(val project: Project, val client: Client) {
-    private val projectSettings: ProjectSettings = project.service()
+    private val utbotSettings: UTBotSettings = project.service()
     private val logger = Logger.getInstance(this::class.java)
 
     private fun handleTestsResponse(response: Testgen.TestsResponse, uiProgress: UTBotRequestProgressIndicator) {
@@ -69,9 +72,9 @@ class ResponseHandler(val project: Project, val client: Client) {
 
         logger.debug("test results list size: ${lastResponse.testRunResultsList.size}")
         lastResponse.testRunResultsList.forEach {
-            logger.debug("${it.testFilePath.substringAfterLast('/')}: name: ${it.testname} status: ${it.status}")
+            logger.info("${it.testFilePath}: name: ${it.testname}, status: ${it.status}")
         }
-        val engine = CoverageEngine.EP_NAME.findExtension(UTBotCoverageEngine::class.java) ?: error("engine is null")
+        val engine = CoverageEngine.EP_NAME.findExtension(UTBotCoverageEngine::class.java) ?: error("UTBotEngine instance is not found!")
         val coverageRunner = CoverageRunner.getInstance(UTBotCoverageRunner::class.java)
         val manager = CoverageDataManager.getInstance(project)
         val suite = UTBotCoverageSuite(engine,
@@ -92,7 +95,7 @@ class ResponseHandler(val project: Project, val client: Client) {
 
     private fun handleSourceCode(sources: List<Util.SourceCode>) {
         sources.forEach { sourceCode ->
-            val filePath: String = projectSettings.convertFromRemotePathIfNeeded(sourceCode.filePath)
+            val filePath: String = utbotSettings.convertFromRemotePathIfNeeded(sourceCode.filePath)
             if (sourceCode.code.isNotEmpty()) {
                 createFileAndMakeDirs(
                     filePath,
@@ -114,7 +117,7 @@ class ResponseHandler(val project: Project, val client: Client) {
 
     suspend fun handleTestsStream(grpcStream: Flow<Testgen.TestsResponse>, progressName: String) {
         handleWithUIProgress(grpcStream, progressName, this::handleTestsResponse)
-        refreshAndFindIOFile(projectSettings.testDirPath)
+        refreshAndFindIOFile(utbotSettings.testDirPath)
     }
 
     private suspend fun handleProjectConfigResponseStream(
@@ -181,7 +184,7 @@ class ResponseHandler(val project: Project, val client: Client) {
         }
 
         handleProjectConfigResponseStream(grpcStream, uiProgressName, ::handleBuildDirCreation)
-        refreshAndFindIOFile(projectSettings.buildDirPath)
+        refreshAndFindIOFile(utbotSettings.buildDirPath)
     }
 
 
@@ -200,7 +203,7 @@ class ResponseHandler(val project: Project, val client: Client) {
             }
         }
         handleProjectConfigResponseStream(grpcStream, uiProgressName, ::handleJSONGeneration)
-        refreshAndFindIOFile(projectSettings.buildDirPath)
+        refreshAndFindIOFile(utbotSettings.buildDirPath)
     }
 
 

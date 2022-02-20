@@ -13,10 +13,11 @@ import com.intellij.openapi.vfs.newvfs.events.VFileEvent
 import com.intellij.psi.PsiElement
 import javax.swing.Icon
 import testsgen.Testgen
+import java.util.concurrent.ConcurrentHashMap
 
 @Service
 class TestsResultsStorage(val project: Project) {
-    private val storage: MutableMap<String, Testgen.TestResultObject> = mutableMapOf()
+    private val storage: MutableMap<String, Testgen.TestResultObject> = ConcurrentHashMap(mutableMapOf())
     private val log = Logger.getInstance(this::class.java)
 
     init {

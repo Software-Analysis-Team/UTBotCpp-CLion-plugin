@@ -14,7 +14,6 @@ import testsgen.Testgen
 import com.intellij.openapi.project.Project
 import kotlin.random.Random
 
-import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -36,6 +35,7 @@ import com.intellij.ide.util.RunOnceUtil
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import io.grpc.Status
+import mu.KLogger
 import mu.KotlinLogging
 
 enum class LogLevel(val id: String) {
@@ -48,50 +48,37 @@ class Client(val project: Project) : Disposable {
     private var connectionStatus = ConnectionStatus.INIT
     private val messageBus = project.messageBus
     private var heartBeatJob: Job? = null
-    private val metadata: io.grpc.Metadata = io.grpc.Metadata()
     private val handler = ResponseHandler(project, this)
     private var logLevel: LogLevel = LogLevel.INFO
     private var newClient = true
-    private val settings = project.service<ProjectSettings>()
+    private val settings = project.service<UTBotSettings>()
+    private val clientID = generateClientID()
 
-    private val logger = KotlinLogging.logger("ClientLogger")
-    init {
-        println("Client constructor was called!!!")
-    }
-
-    init {
-        (logger.underlyingLogger as Logger).getAppender("ClientAppender").let {
-            (it as ClientLogAppender).utBotConsole = project.service<OutputWindowProvider>().outputs[OutputType.CLIENT_LOG]
-        }
-    }
-
-    val grpcCoroutineScope: CoroutineScope
-
-    init {
-        val handler = CoroutineExceptionHandler { _, exception ->
-            exception.printStackTrace()
-        }
-        grpcCoroutineScope = CoroutineScope(Dispatchers.Swing + handler)
-
-        periodicHeartBeat()
-    }
-
-    private val grpcStub: TestsGenServiceGrpcKt.TestsGenServiceCoroutineStub
-
-    fun setLoggingLevel(newLevel: LogLevel) {
-        logger.info("Setting new log level: ${newLevel.id}")
-        logLevel = newLevel
-        grpcCoroutineScope.launch {
-            provideLogChannel()
-        }
-    }
+    val grpcCoroutineScope: CoroutineScope = CoroutineScope(Dispatchers.Swing)
+    private val logger = setupLogger()
+    private val grpcStub: TestsGenServiceGrpcKt.TestsGenServiceCoroutineStub = setupGrpcStub()
 
     init {
         logger.info("Connecting to server on host: ${settings.serverName} , port: ${settings.port}")
+        subscribeToEvents()
+        startPeriodicHeartBeat()
+    }
+
+    private fun setupLogger(): KLogger = KotlinLogging.logger("ClientLogger").also { newLogger ->
+        (newLogger.underlyingLogger as Logger).getAppender("ClientAppender").let {
+            (it as ClientLogAppender).utBotConsole =
+                project.service<OutputWindowProvider>().outputs[OutputType.CLIENT_LOG]
+        }
+    }
+
+    private fun setupGrpcStub(): TestsGenServiceGrpcKt.TestsGenServiceCoroutineStub {
+        val metadata: io.grpc.Metadata = io.grpc.Metadata()
         val stub = GrpcClient(settings.port, settings.serverName).stub
-        val clientID = generateClientID()
         metadata.put(io.grpc.Metadata.Key.of("clientid", io.grpc.Metadata.ASCII_STRING_MARSHALLER), clientID)
-        grpcStub = io.grpc.stub.MetadataUtils.attachHeaders(stub, metadata)
+        return io.grpc.stub.MetadataUtils.attachHeaders(stub, metadata)
+    }
+
+    private fun subscribeToEvents() {
         project.messageBus.connect(this)
             .subscribe(UTBotEventsListener.CONNECTION_CHANGED_TOPIC, object : UTBotEventsListener {
                 override fun onConnectionChange(oldStatus: ConnectionStatus, newStatus: ConnectionStatus) {
@@ -99,6 +86,7 @@ class Client(val project: Project) : Disposable {
                         configureProject()
                     }
                 }
+
                 override fun onHeartbeatSuccess(response: Testgen.HeartbeatResponse) {
                     RunOnceUtil.runOnceForProject(project, "UTBot: Register client for server") {
                         registerClient(clientID)
@@ -112,6 +100,14 @@ class Client(val project: Project) : Disposable {
                     }
                 }
             })
+    }
+
+    fun setLoggingLevel(newLevel: LogLevel) {
+        logger.info("Setting new log level: ${newLevel.id}")
+        logLevel = newLevel
+        grpcCoroutineScope.launch {
+            provideLogChannel()
+        }
     }
 
     private suspend fun provideGTestChannel() {
@@ -186,7 +182,7 @@ class Client(val project: Project) : Disposable {
         }
     }
 
-    fun periodicHeartBeat() {
+    fun startPeriodicHeartBeat() {
         logger.info("The heartbeat started with interval: $HEARTBEAT_INTERVAL ms")
         if (heartBeatJob != null) {
             heartBeatJob?.cancel()
@@ -196,7 +192,7 @@ class Client(val project: Project) : Disposable {
                 heartBeatOnce()
                 delay(HEARTBEAT_INTERVAL)
             }
-            logger.info("stopped heartBeating the server!")
+            logger.info("Stopped heartBeating the server!")
         }
     }
 

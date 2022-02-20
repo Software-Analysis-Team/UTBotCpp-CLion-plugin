@@ -22,11 +22,11 @@ import java.awt.Dimension
 class UTBotConfigurable(private val targetProject: Project) : BoundConfigurable(
     "Project Settings for Generating Tests"
 ) {
-    private val projectSettings: ProjectSettings get() = targetProject.service()
+    private val utbotSettings: UTBotSettings get() = targetProject.service()
     private val generatorSettings: GeneratorSettings get() = targetProject.service()
     private val logger = Logger.getInstance("ProjectConfigurable")
     private val sourcePathListModel =
-        CollectionListModel(*targetProject.getService(ProjectSettings::class.java).state.sourcePaths.toTypedArray())
+        CollectionListModel(*targetProject.getService(UTBotSettings::class.java).state.sourcePaths.toTypedArray())
     private val onApplyCallBacks = mutableListOf<() -> Unit>()
     private val onResetCallBacks = mutableListOf<() -> Unit>()
     private val panel = createMainPanel()
@@ -48,49 +48,49 @@ class UTBotConfigurable(private val targetProject: Project) : BoundConfigurable(
             row {
                 label(UTBot.message("settings.project.buildDir"))
                 textFieldWithBrowseButton(
-                    projectSettings::buildDirPath,
+                    utbotSettings::buildDirPath,
                     UTBot.message("settings.project.buildDir.browse.title"),
                     targetProject, FileChooserDescriptorFactory.createSingleFileDescriptor()
                 ).component.apply {
                     setMaxSize()
-                    onApplyCallBacks.add { projectSettings.buildDirPath = this.text }
-                    onResetCallBacks.add { this.text = projectSettings.buildDirPath }
+                    onApplyCallBacks.add { utbotSettings.buildDirPath = this.text }
+                    onResetCallBacks.add { this.text = utbotSettings.buildDirPath }
                 }
             }
             row {
                 label(UTBot.message("settings.project.target"))
                 textFieldWithBrowseButton(
-                    projectSettings::targetPath,
+                    utbotSettings::targetPath,
                     UTBot.message("settings.project.target.browse.title"),
                     project = targetProject,
                     fileChooserDescriptor = FileChooserDescriptorFactory.createSingleFileDescriptor()
                 ) { file ->
-                    projectSettings.targetPath = file.path
+                    utbotSettings.targetPath = file.path
                     file.path
                 }.component.apply {
                     setMaxSize()
-                    onApplyCallBacks.add { projectSettings.targetPath = this.text }
-                    onResetCallBacks.add { this.text = projectSettings.targetPath }
+                    onApplyCallBacks.add { utbotSettings.targetPath = this.text }
+                    onResetCallBacks.add { this.text = utbotSettings.targetPath }
                 }
             }
             row {
                 label(UTBot.message("settings.project.testsDir"))
                 textFieldWithBrowseButton(
-                    projectSettings::testDirPath,
+                    utbotSettings::testDirPath,
                     UTBot.message("settings.project.testsDir.browse.title"),
                     project = targetProject,
                     fileChooserDescriptor = FileChooserDescriptorFactory.createSingleFolderDescriptor()
                 ) { folder ->
-                    projectSettings.testDirPath = folder.path
+                    utbotSettings.testDirPath = folder.path
                     folder.path
                 }.component.apply {
                     setMaxSize()
-                    onApplyCallBacks.add { projectSettings.testDirPath = this.text }
-                    onResetCallBacks.add { this.text = projectSettings.testDirPath }
+                    onApplyCallBacks.add { utbotSettings.testDirPath = this.text }
+                    onResetCallBacks.add { this.text = utbotSettings.testDirPath }
                 }
             }
             val checkBoxDs = mapOf(
-                UTBot.message("settings.generation.synchronize") to projectSettings::synchronizeCode,
+                UTBot.message("settings.generation.synchronize") to utbotSettings::synchronizeCode,
                 UTBot.message("settings.generation.stubs") to generatorSettings::useStubs,
                 UTBot.message("settings.generation.verbose") to generatorSettings::verbose,
                 UTBot.message("settings.generation.searcher") to generatorSettings::useDeterministicSearcher,
@@ -107,7 +107,7 @@ class UTBotConfigurable(private val targetProject: Project) : BoundConfigurable(
             val intFields = mapOf(
                 UTBot.message("settings.generation.timeoutFunction") to generatorSettings::timeoutPerFunction,
                 UTBot.message("settings.generation.timeoutTest") to generatorSettings::timeoutPerTest,
-                UTBot.message("settings.project.port") to projectSettings::port
+                UTBot.message("settings.project.port") to utbotSettings::port
             )
             intFields.forEach { (message, intProperty) ->
                 row(message) {
@@ -119,26 +119,26 @@ class UTBotConfigurable(private val targetProject: Project) : BoundConfigurable(
                 }
             }
             row(UTBot.message("settings.project.serverName")) {
-                textField(projectSettings::serverName).component.apply {
-                    onResetCallBacks.add { this.text = projectSettings.serverName }
-                    onApplyCallBacks.add { projectSettings.serverName = this.text }
+                textField(utbotSettings::serverName).component.apply {
+                    onResetCallBacks.add { this.text = utbotSettings.serverName }
+                    onApplyCallBacks.add { utbotSettings.serverName = this.text }
                 }
             }
             row(UTBot.message("settings.project.sourcePaths")) {
                 component(createSourcesListComponent())
             }
             row(UTBot.message("settings.project.remotePath")) {
-                textField(projectSettings::remotePath).component.apply {
+                textField(utbotSettings::remotePath).component.apply {
                     this.maximumSize = Dimension(370, 100)
-                    onApplyCallBacks.add { projectSettings.remotePath = this.text }
-                    onResetCallBacks.add { this.text = projectSettings.remotePath }
+                    onApplyCallBacks.add { utbotSettings.remotePath = this.text }
+                    onResetCallBacks.add { this.text = utbotSettings.remotePath }
                 }
             }
             row {
                 label("Try to get paths from CMake model: ")
                 button("detect paths") {
-                    projectSettings.predictPaths()
-                    projectSettings.fireUTBotSettingsChanged()
+                    utbotSettings.predictPaths()
+                    utbotSettings.fireUTBotSettingsChanged()
                 }
             }
         }
@@ -158,13 +158,13 @@ class UTBotConfigurable(private val targetProject: Project) : BoundConfigurable(
             .createPanel()
 
     override fun isModified(): Boolean {
-        return super.isModified() || (sourcePathListModel.toList() != projectSettings.sourcePaths)
+        return super.isModified() || (sourcePathListModel.toList() != utbotSettings.sourcePaths)
     }
 
     override fun apply() {
         logger.info("apply was called")
         onApplyCallBacks.forEach { it() }
-        projectSettings.sourcePaths = sourcePathListModel.toList()
+        utbotSettings.sourcePaths = sourcePathListModel.toList()
     }
 
     override fun reset() {
@@ -172,7 +172,7 @@ class UTBotConfigurable(private val targetProject: Project) : BoundConfigurable(
         onResetCallBacks.forEach { it() }
         sourcePathListModel.also {
             it.removeAll()
-            it.addAll(0, projectSettings.sourcePaths)
+            it.addAll(0, utbotSettings.sourcePaths)
         }
     }
 }

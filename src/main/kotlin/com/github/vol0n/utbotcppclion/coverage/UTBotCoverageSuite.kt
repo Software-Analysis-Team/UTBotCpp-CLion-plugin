@@ -11,6 +11,11 @@ import java.io.File
 import java.util.*
 import java.util.concurrent.TimeUnit
 
+/**
+ * Stores coverage information and coverage settings. In current implementation coverage settings are unused.
+ *
+ * @param covLists - coverage information returned from server.
+ */
 class UTBotCoverageSuite(
     coverageEngine: UTBotCoverageEngine,
     covLists: List<Testgen.FileCoverageSimplified>? = null,
@@ -35,8 +40,24 @@ class UTBotCoverageSuite(
         return covEngine
     }
 
+    /**
+     * in parent's implementation this method deletes coverage file returned from [CoverageFileProvider].
+     * As we don't use any files, it should do nothing.
+     */
     override fun deleteCachedCoverageData() {}
 
+    /*
+     * It is called when contents of a file are changed for externally added suite.
+     * If contents are changed then our coverage data is outdated, so just let it be null.
+     */
+    override fun restoreCoverageData() {
+        coverageData = null
+    }
+
+    /**
+     * in parent's implementation this method checks existence of the coverage file returned from [CoverageFileProvider].
+     * As we don't use any files, the part with file was deleted.
+     */
     override fun loadProjectInfo(): ProjectData? {
         val startNs = System.nanoTime()
         val projectData = covRunner?.loadCoverageData(File(""), this)

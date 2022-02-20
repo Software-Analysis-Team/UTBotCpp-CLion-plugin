@@ -1,6 +1,5 @@
 package com.github.vol0n.utbotcppclion.services
 
-import com.intellij.execution.configurations.RunConfigurationOptions
 import com.intellij.openapi.components.PersistentStateComponent
 import com.intellij.openapi.components.State
 import com.intellij.openapi.components.service
@@ -27,14 +26,6 @@ data class GeneratorSettings(
         logger.info("constructor was called: project == $project")
     }
 
-    companion object {
-        @JvmStatic
-        fun instance(project: Project): GeneratorSettings {
-            return project.service()
-        }
-    }
-
-
     override fun getState(): GeneratorSettings {
         logger.info("getState was called: $this")
         return this
@@ -43,5 +34,12 @@ data class GeneratorSettings(
     override fun loadState(state: GeneratorSettings) {
         logger.info("loadState was called: $state \n $this")
         XmlSerializerUtil.copyBean(state, this);
+    }
+
+    companion object {
+        @JvmStatic
+        fun instance(project: Project): GeneratorSettings {
+            return project.service()
+        }
     }
 }

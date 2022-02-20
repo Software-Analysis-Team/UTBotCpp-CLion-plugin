@@ -1,7 +1,7 @@
 package com.github.vol0n.utbotcppclion.ui
 
 import com.github.vol0n.utbotcppclion.messaging.UTBotSettingsChangedListener
-import com.github.vol0n.utbotcppclion.services.ProjectSettings
+import com.github.vol0n.utbotcppclion.services.UTBotSettings
 import com.github.vol0n.utbotcppclion.utils.relativize
 import com.intellij.execution.RunManager
 import com.intellij.openapi.components.service
@@ -30,11 +30,11 @@ open class UTBotTarget(val targetAbsolutePath: String, val project: Project? = n
 }
 
 class UTBotTargetsController(val project: Project) {
-    private val projectSettings = project.service<ProjectSettings>()
+    private val utbotSettings = project.service<UTBotSettings>()
     private val listModel = CollectionListModel(mutableListOf(UTBotTarget.UTBOT_AUTO_TARGET))
     init {
         listModel.addAll(1, getCMakeTargets())
-        addTargetPathIfNotPresent(projectSettings.targetPath)
+        addTargetPathIfNotPresent(utbotSettings.targetPath)
         connectToEvents()
     }
 
@@ -53,7 +53,7 @@ class UTBotTargetsController(val project: Project) {
     private fun getCMakeTargets() =
         RunManager.getInstance(project).allConfigurationsList.mapNotNull {
             // BuildConfigurations can be 'release', 'debug' ...
-            (it as CMakeAppRunConfiguration).cMakeTarget?.buildConfigurations?.mapNotNull { cmakeConfig ->
+            (it as? CMakeAppRunConfiguration)?.cMakeTarget?.buildConfigurations?.mapNotNull { cmakeConfig ->
                 cmakeConfig.productFile?.absolutePath?.let { targetPath ->
                     UTBotTarget(targetPath, project)
                 }
@@ -63,7 +63,7 @@ class UTBotTargetsController(val project: Project) {
     fun selectionChanged(index: Int) {
         // when user selects target update model
         if (index in 0 until listModel.size) {
-            projectSettings.targetPath = listModel.getElementAt(index).targetAbsolutePath
+            utbotSettings.targetPath = listModel.getElementAt(index).targetAbsolutePath
         }
     }
 
@@ -73,7 +73,7 @@ class UTBotTargetsController(val project: Project) {
             override fun reloadingFinished(canceled: Boolean) {
                 listModel.replaceAll(mutableListOf(UTBotTarget.UTBOT_AUTO_TARGET).apply {
                     addAll(getCMakeTargets())
-                    addTargetPathIfNotPresent(projectSettings.targetPath)
+                    addTargetPathIfNotPresent(utbotSettings.targetPath)
                 })
             }
         })

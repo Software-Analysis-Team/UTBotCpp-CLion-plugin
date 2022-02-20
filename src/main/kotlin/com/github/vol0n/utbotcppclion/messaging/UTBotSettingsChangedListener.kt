@@ -1,6 +1,6 @@
 package com.github.vol0n.utbotcppclion.messaging
 
-import com.github.vol0n.utbotcppclion.services.ProjectSettings
+import com.github.vol0n.utbotcppclion.services.UTBotSettings
 import com.intellij.util.messages.Topic
 
 fun interface UTBotSettingsChangedListener {
@@ -11,5 +11,5 @@ fun interface UTBotSettingsChangedListener {
         )
     }
 
-    fun settingsChanged(settings: ProjectSettings)
+    fun settingsChanged(settings: UTBotSettings)
 }

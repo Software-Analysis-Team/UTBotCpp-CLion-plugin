@@ -22,10 +22,10 @@ import java.nio.file.Paths
  * @see UTBotConfigurable
  */
 @State(name = "UTBotProjectSettings")
-data class ProjectSettings(
+data class UTBotSettings(
     @com.intellij.util.xmlb.annotations.Transient
     val project: Project? = null,
-    ) : PersistentStateComponent<ProjectSettings> {
+    ) : PersistentStateComponent<UTBotSettings> {
     @com.intellij.util.xmlb.annotations.Transient
     val logger = Logger.getInstance(this::class.java)
 
@@ -160,12 +160,12 @@ data class ProjectSettings(
         project.messageBus.syncPublisher(UTBotSettingsChangedListener.TOPIC).settingsChanged(this)
     }
 
-    override fun getState(): ProjectSettings {
+    override fun getState(): UTBotSettings {
         logger.info("getState was called: this:$this")
         return this
     }
 
-    override fun loadState(state: ProjectSettings) {
+    override fun loadState(state: UTBotSettings) {
         logger.info("loadState was called: state: $state\n this:$this")
 
         XmlSerializerUtil.copyBean(state, this)

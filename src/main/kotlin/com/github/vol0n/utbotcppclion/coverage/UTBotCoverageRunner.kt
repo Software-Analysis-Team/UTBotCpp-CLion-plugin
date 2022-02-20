@@ -13,6 +13,9 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.Paths
 
+/**
+ * This class is used to convert from our representation of coverage to IntelliJ's [ProjectData]
+ */
 class UTBotCoverageRunner : CoverageRunner() {
     private val log = Logger.getInstance(this::class.java)
     private fun getLineCount(filePath: String): Int {
@@ -21,15 +24,13 @@ class UTBotCoverageRunner : CoverageRunner() {
         return lineCount
     }
 
+    /**
+     * Convert from our coverage representation to IntelliJ Platform representation - [ProjectData]
+     */
     override fun loadCoverageData(sessionDataFile: File, baseCoverageSuite: CoverageSuite?): ProjectData? {
         log.debug("loadCoverageData was called!")
         val coveragesList = (baseCoverageSuite as? UTBotCoverageSuite)?.coveragesList
-        // maybe raise exception instead?
-        assert(coveragesList != null)
-        if (coveragesList == null) {
-            log.warn("loadCoverageData was called with unexpected coverageSuite! $baseCoverageSuite")
-            return null
-        }
+        coveragesList ?: error("Coverage list is empty in loadCoverageData!")
         val projectData = ProjectData()
         var isAnyCoverage = false
         for (simplifiedCovInfo in coveragesList) {
@@ -38,7 +39,7 @@ class UTBotCoverageRunner : CoverageRunner() {
                 isAnyCoverage = true
                 val localFilePath = filePathFromServer.convertFromRemotePathIfNeeded(baseCoverageSuite.project)
                 val lines = arrayOfNulls<LineData>(getLineCount(localFilePath))
-                val classData = projectData.getOrCreateClassData(localFilePath)
+                val classData = projectData.getOrCreateClassData(provideQualifiedNameForFile(localFilePath))
                 fun processRanges(rangesList: List<Testgen.SourceRange?>, isCovered: Boolean) {
                     rangesList.filterNotNull().forEach {
                         for (i in (it.start.line+1)..(it.end.line+1)) {
@@ -72,5 +73,9 @@ class UTBotCoverageRunner : CoverageRunner() {
 
     override fun acceptsCoverageEngine(engine: CoverageEngine): Boolean {
         return engine is UTBotCoverageEngine
+    }
+
+    companion object {
+        fun provideQualifiedNameForFile(absolutePath: String) = absolutePath
     }
 }

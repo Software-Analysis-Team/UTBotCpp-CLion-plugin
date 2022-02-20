@@ -27,4 +27,4 @@ fun createFileAndMakeDirs(filePath: String, text: String) {
     }
 }
 
-fun isCPPFileName(fileName: String) = """.*\.(cpp|hpp|c|h)""".toRegex().matches(fileName)
+fun isCPPorCFileName(fileName: String) = """.*\.(cpp|hpp|c|h)""".toRegex().matches(fileName)

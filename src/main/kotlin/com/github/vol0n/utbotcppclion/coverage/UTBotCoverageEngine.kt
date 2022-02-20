@@ -1,73 +1,60 @@
 package com.github.vol0n.utbotcppclion.coverage
 
-import com.github.vol0n.utbotcppclion.utils.isCPPFileName
+import com.github.vol0n.utbotcppclion.utils.isCPPorCFileName
 import com.intellij.coverage.CoverageAnnotator
 import com.intellij.coverage.CoverageEngine
 import com.intellij.coverage.CoverageFileProvider
-import com.intellij.coverage.CoverageLineMarkerRenderer
 import com.intellij.coverage.CoverageRunner
 import com.intellij.coverage.CoverageSuite
 import com.intellij.coverage.CoverageSuitesBundle
+import com.intellij.coverage.SimpleCoverageAnnotator
 import com.intellij.execution.configurations.RunConfigurationBase
 import com.intellij.execution.configurations.coverage.CoverageEnabledConfiguration
 import com.intellij.execution.testframework.AbstractTestProxy
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
-import com.intellij.rt.coverage.data.LineData
-import com.intellij.util.Function
 import java.io.File
-import java.util.*
 
+/**
+ * This class must be implemented to create custom [CoverageSuite] - [UTBotCoverageSuite].
+ *
+ * for additional docs @see [CoverageEngine] in IntelliJ Platform source code
+ */
 class UTBotCoverageEngine : CoverageEngine() {
     private val log = Logger.getInstance(this::class.java)
-    companion object {
-        internal fun provideQualifiedName(sourceFile: PsiFile): String? = sourceFile.virtualFile?.path
-    }
 
+    /**
+     * This method is not called, when the coverage is processed in CoverageDataManager#coverageGathered(suite).
+     *
+     * So this method is unused, but needs to be implemented.
+     */
     override fun isApplicableTo(conf: RunConfigurationBase<*>) = false
 
-    override fun getLineMarkerRenderer(
-        lineNumber: Int,
-        className: String?,
-        lines: TreeMap<Int, LineData>?,
-        coverageByTestApplicable: Boolean,
-        coverageSuite: CoverageSuitesBundle,
-        newToOldConverter: Function<in Int, Int>?,
-        oldToNewConverter: Function<in Int, Int>?,
-        subCoverageActive: Boolean
-    ): CoverageLineMarkerRenderer {
-        log.debug("getLineMarkerRenderer was called! Classname: $className, line: $lineNumber, lines: $lines")
-        return super.getLineMarkerRenderer(
-            lineNumber,
-            className,
-            lines,
-            coverageByTestApplicable,
-            coverageSuite,
-            newToOldConverter,
-            oldToNewConverter,
-            subCoverageActive
-        )
-    }
+    /**
+     * Determines if coverage information should be displayed for given file
+     */
+    override fun coverageEditorHighlightingApplicableTo(psiFile: PsiFile): Boolean = isCPPorCFileName(psiFile.name)
 
-    override fun coverageEditorHighlightingApplicableTo(psiFile: PsiFile): Boolean {
-        log.debug("coverageEditorHighlightingApplicableTo was called on: $psiFile")
-        return true
-    }
-
-    override fun coverageProjectViewStatisticsApplicableTo(fileOrDir: VirtualFile): Boolean {
-        return !fileOrDir.isDirectory && isCPPFileName(fileOrDir.name)
-    }
-
+    /**
+     * @return true if we can provide tests that covered a particular line.
+     *
+     * From information returned from server we can't do that.
+     */
     override fun canHavePerTestCoverage(conf: RunConfigurationBase<*>) = false
 
+    /**
+     * Not used in our coverage processing but needs to be implemented.
+     */
     override fun createCoverageEnabledConfiguration(conf: RunConfigurationBase<*>): CoverageEnabledConfiguration {
         return UTBotCoverageEnabledConfiguration(conf)
     }
 
+    /**
+     * Not used in our coverage processing but needs to be implemented.
+     */
     override fun createCoverageSuite(
         covRunner: CoverageRunner,
         name: String,
@@ -79,85 +66,111 @@ class UTBotCoverageEngine : CoverageEngine() {
         tracingEnabled: Boolean,
         trackTestFolders: Boolean,
         project: Project
-    ): CoverageSuite? {
-        val utbotFileProvider = (coverageDataFileProvider as? UTBotCoverageFileProvider)
-        if (utbotFileProvider == null) {
-            log.debug("createCoverageSuite was called with unexpected coverageDataFileProvider!")
-            return null
-        }
-        return UTBotCoverageSuite(
-            this, null, name, utbotFileProvider, lastCoverageTimeStamp,
-            coverageByTestEnabled, tracingEnabled, tracingEnabled, covRunner, project
-        )
-    }
+    ): CoverageSuite? = null
 
+    /**
+     * Not used in our coverage processing but needs to be implemented.
+     */
     override fun createCoverageSuite(
         covRunner: CoverageRunner,
         name: String,
         coverageDataFileProvider: CoverageFileProvider,
         config: CoverageEnabledConfiguration
-    ): CoverageSuite {
-        return UTBotCoverageSuite(
-            this,
-            coverageRunner = covRunner,
-            name = name,
-            project = config.configuration.project
-        )
-    }
+    ): CoverageSuite? = null
 
+    /**
+     * Not used in our coverage processing but needs to be implemented.
+     */
     override fun createEmptyCoverageSuite(coverageRunner: CoverageRunner): CoverageSuite? {
-        log.debug("createEmptyCoverageSuite was called!")
         return null
     }
 
+    /**
+     * Not used in our coverage processing but needs to be implemented.
+     *
+     */
     override fun getCoverageAnnotator(project: Project?): CoverageAnnotator {
-        return UTBotCoverageAnnotator(project)
+        return object : SimpleCoverageAnnotator(project) {}
     }
 
+    /**
+     * Coverage is processed only when we receive non-empty response from server,
+     * so we don't need to check for empty output directory and recompile project,
+     * because server already compiled it and generated coverage.
+     */
     override fun recompileProjectAndRerunAction(
         module: Module,
         suite: CoverageSuitesBundle,
         chooseSuiteAction: Runnable
     ) = false
 
+    /**
+     * @return qualified names compatible with ProjectData.getClassData(qname)
+     *
+     * In [UTBotCoverageRunner] we use [UTBotCoverageRunner.provideQualifiedNameForFile] to
+     * create ClassData for absolute path of a file. So for compatibility we use it here.
+     */
     override fun getQualifiedNames(sourceFile: PsiFile): MutableSet<String> {
-        log.debug("getQualifiedNames was called: $sourceFile")
-        return provideQualifiedName(sourceFile)?.let {
-            mutableSetOf(it)
+        return sourceFile.virtualFile?.path?.let {
+            mutableSetOf(UTBotCoverageRunner.provideQualifiedNameForFile(it))
         } ?: mutableSetOf()
     }
 
-    override fun getQualifiedName(outputFile: File, sourceFile: PsiFile): String {
-        log.debug("getQualifiedName was called: $sourceFile")
-        return outputFile.absolutePath
-    }
 
-    override fun includeUntouchedFileInCoverage(
-        qualifiedName: String,
-        outputFile: File,
-        sourceFile: PsiFile,
+    /**
+     * output files - something like class files for java files. Useless for c/c++.
+     *
+     * @return empty set.
+     */
+    override fun getCorrespondingOutputFiles(
+        srcFile: PsiFile,
+        module: Module?,
         suite: CoverageSuitesBundle
-    ) = false
-
-    override fun acceptedByFilters(psiFile: PsiFile, suite: CoverageSuitesBundle): Boolean {
-        log.debug("acceptedByFilters: $psiFile, ${suite.coverageData}")
-       return true
+    ): MutableSet<File> {
+        return mutableSetOf()
     }
 
-    override fun collectSrcLinesForUntouchedFile(classFile: File, suite: CoverageSuitesBundle): MutableList<Int>? =
+    /**
+     * Checks whether coverage should be shown for file based on [CoverageSuitesBundle].
+     * It is used in [CoverageDataManager.applyInformationToEditor].
+     *
+     * For example, see JavaCoverageEngine: We may not want to show coverage for files in test
+     * folders, if suite.isTrackTestFolders == false, we may check it here and return false.
+     *
+     * For now all files are accepted.
+     *
+     * @param psiFile Psi file
+     * @param suite   Coverage suite
+     * @return true
+     */
+    override fun acceptedByFilters(psiFile: PsiFile, suite: CoverageSuitesBundle): Boolean = true
+
+    /**
+     * @return psi references to tests given their names.
+     *
+     * from call site: test names are gathered from [CoverageEngine.getTestsForLine], then this method is called.
+     * We can't find tests that covered specified line, so this method won't be called.
+     *
+     * It is required for implementation of [CoverageEngine], so we just return empty list.
+     *
+     * @return empty list.
+     */
+    override fun findTestsByNames(testNames: Array<out String>, project: Project): MutableList<PsiElement> =
         mutableListOf()
 
-    override fun findTestsByNames(testNames: Array<out String>, project: Project): MutableList<PsiElement> {
-        log.debug("findTestsByNames was called: $testNames")
-        return mutableListOf()
-    }
+    /**
+     * Return the name of a file, which contains traces for a given test.
+     *
+     * As server returns list of FileCoverages and test results, we can't get the name of a file for a test,
+     * so it is not supported.
+     *
+     * @return null
+     */
+    override fun getTestMethodName(element: PsiElement, testProxy: AbstractTestProxy): String? = null
 
-
-    override fun getTestMethodName(element: PsiElement, testProxy: AbstractTestProxy): String? {
-        log.debug("getTestMethodName: ${element.text}, testProxy: ${testProxy.allTests}")
-        return null
-    }
-
+    /**
+     * If there are multiple coverage engines, then the user will be asked to choose one of them with this text.
+     */
     override fun getPresentableText(): String {
         return "UTBot Coverage Engine"
     }
