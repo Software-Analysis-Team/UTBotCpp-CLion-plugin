@@ -2,8 +2,8 @@ package com.github.vol0n.utbotcppclion.ui
 
 import com.github.vol0n.utbotcppclion.messaging.ConnectionStatus
 import com.github.vol0n.utbotcppclion.messaging.UTBotEventsListener
-import com.github.vol0n.utbotcppclion.services.Client
-import com.github.vol0n.utbotcppclion.services.LogLevel
+import com.github.vol0n.utbotcppclion.client.Client
+import com.github.vol0n.utbotcppclion.client.LogLevel
 import com.intellij.execution.impl.ConsoleViewImpl
 import com.intellij.execution.ui.ConsoleViewContentType
 import com.intellij.openapi.Disposable

@@ -1,8 +1,7 @@
-package com.github.vol0n.utbotcppclion.services
+package com.github.vol0n.utbotcppclion.client
 
 import com.github.vol0n.utbotcppclion.actions.getDummyRequest
 import com.github.vol0n.utbotcppclion.actions.getProjectConfigRequestMessage
-import com.github.vol0n.utbotcppclion.client.ResponseHandler
 import com.github.vol0n.utbotcppclion.messaging.ConnectionStatus
 import com.github.vol0n.utbotcppclion.messaging.UTBotEventsListener
 import com.github.vol0n.utbotcppclion.ui.OutputType
@@ -28,8 +27,7 @@ import kotlinx.coroutines.withContext
 import testsgen.TestsGenServiceGrpcKt
 
 import ch.qos.logback.classic.Logger
-import com.github.vol0n.utbotcppclion.client.ClientLogAppender
-import com.github.vol0n.utbotcppclion.client.GrpcClient
+import com.github.vol0n.utbotcppclion.services.UTBotSettings
 import com.github.vol0n.utbotcppclion.ui.OutputWindowProvider
 import com.intellij.ide.util.RunOnceUtil
 import com.intellij.openapi.components.Service
@@ -354,7 +352,6 @@ class Client(val project: Project) : Disposable {
     }
 
     override fun dispose() {
-        println("Dispose of client was called!!!")
         grpcCoroutineScope.launch {
             try {
                 grpcStub.closeLogChannel(getDummyRequest())

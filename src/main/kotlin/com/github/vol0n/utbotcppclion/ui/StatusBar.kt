@@ -4,7 +4,7 @@ import com.github.vol0n.utbotcppclion.actions.AskServerToGenerateJsonForProjectC
 import com.github.vol0n.utbotcppclion.actions.ConfigureProjectAction
 import com.github.vol0n.utbotcppclion.messaging.ConnectionStatus
 import com.github.vol0n.utbotcppclion.messaging.UTBotEventsListener
-import com.github.vol0n.utbotcppclion.services.Client
+import com.github.vol0n.utbotcppclion.client.Client
 import com.intellij.ide.DataManager
 import com.intellij.openapi.actionSystem.ActionPlaces
 import com.intellij.openapi.actionSystem.DataContext

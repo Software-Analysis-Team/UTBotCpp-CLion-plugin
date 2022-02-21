@@ -9,7 +9,6 @@ import com.github.vol0n.utbotcppclion.coverage.UTBotCoverageEngine
 import com.github.vol0n.utbotcppclion.coverage.UTBotCoverageRunner
 import com.github.vol0n.utbotcppclion.coverage.UTBotCoverageSuite
 import com.github.vol0n.utbotcppclion.messaging.UTBotTestResultsReceivedListener
-import com.github.vol0n.utbotcppclion.services.Client
 import com.github.vol0n.utbotcppclion.services.UTBotSettings
 import com.github.vol0n.utbotcppclion.ui.UTBotRequestProgressIndicator
 import com.github.vol0n.utbotcppclion.utils.createFileAndMakeDirs

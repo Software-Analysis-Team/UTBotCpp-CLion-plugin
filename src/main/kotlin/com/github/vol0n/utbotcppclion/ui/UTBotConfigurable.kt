@@ -1,7 +1,9 @@
-package com.github.vol0n.utbotcppclion.services
+package com.github.vol0n.utbotcppclion.ui
 
 import com.github.vol0n.utbotcppclion.UTBot
 import com.github.vol0n.utbotcppclion.messaging.UTBotSettingsChangedListener
+import com.github.vol0n.utbotcppclion.services.GeneratorSettings
+import com.github.vol0n.utbotcppclion.services.UTBotSettings
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.fileChooser.FileChooser

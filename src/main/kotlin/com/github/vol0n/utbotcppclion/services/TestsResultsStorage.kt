@@ -35,7 +35,6 @@ class TestsResultsStorage(val project: Project) {
             override fun after(events: MutableList<out VFileEvent>) {
                 var wasSave = false
                 events.forEach { event ->
-                    println("Listener received event: $event")
                     if (event.isFromSave) {
                         wasSave = true
                         storage.forEach { entry ->
@@ -46,7 +45,6 @@ class TestsResultsStorage(val project: Project) {
                     }
                 }
                 if (wasSave) {
-                    println("Restarting daemon code analyzer")
                     DaemonCodeAnalyzer.getInstance(project).restart()
                 }
             }

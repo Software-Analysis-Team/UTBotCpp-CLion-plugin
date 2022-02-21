@@ -25,7 +25,6 @@ class DummyServerAppender : AppenderBase<ILoggingEvent?>() {
     override fun append(event: ILoggingEvent?) {
         // output the events as formatted by our layout
         val logMessage = encoder?.encode(event)?.decodeToString()
-        println(logMessage)
         logMessage?.let {
             messageBuffer?.add(logMessage)
         }

@@ -66,8 +66,8 @@ class UTBotCoverageRunner : CoverageRunner() {
         return "Coverage runner ID"
     }
 
+    // actually no coverage file exists, but this method must be implemented, see UTBotCoverageFileProvider
     override fun getDataFileExtension(): String {
-        log.debug ("getDataFileExtension was called")
         return "txt"
     }
 

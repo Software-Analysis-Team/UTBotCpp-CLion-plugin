@@ -181,7 +181,6 @@ fun getDummyRequest() = Testgen.DummyRequest.newBuilder().build()
 
 fun getTestFilter(e: AnActionEvent): Testgen.TestFilter {
     val filePath = e.getRequiredData(CommonDataKeys.VIRTUAL_FILE).path
-    println(e.dataContext)
     val testName = ""
     val testSuite = ""
     return getTestFilter(filePath, testName, testSuite)

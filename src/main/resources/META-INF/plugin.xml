@@ -18,9 +18,9 @@
         <projectService serviceImplementation="com.github.vol0n.utbotcppclion.services.UTBotSettings"/>
         <coverageEngine implementation="com.github.vol0n.utbotcppclion.coverage.UTBotCoverageEngine"/>
         <postStartupActivity implementation="com.github.vol0n.utbotcppclion.services.UTBotStartupActivity"/>
-        <!--<projectService serviceImplementation="com.github.vol0n.utbotcppclion.services.Client"/> -->
-        <projectConfigurable parentId="tools" instance="com.github.vol0n.utbotcppclion.services.UTBotConfigurable"
-                             id="com.github.vol0n.utbotcppclion.services.UTBotConfigurable"
+        <!--<projectService serviceImplementation="com.github.vol0n.utbotcppclion.client.Client"/> -->
+        <projectConfigurable parentId="tools" instance="com.github.vol0n.utbotcppclion.ui.UTBotConfigurable"
+                             id="com.github.vol0n.utbotcppclion.ui.UTBotConfigurable"
                              displayName="UTBot Settings"
                              nonDefaultProject="true"/>
         <notificationGroup id="Custom Notification Group" displayType="BALLOON"/>

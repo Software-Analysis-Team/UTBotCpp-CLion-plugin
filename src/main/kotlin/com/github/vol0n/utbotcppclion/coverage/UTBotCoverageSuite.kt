@@ -46,7 +46,7 @@ class UTBotCoverageSuite(
      */
     override fun deleteCachedCoverageData() {}
 
-    /*
+    /**
      * It is called when contents of a file are changed for externally added suite.
      * If contents are changed then our coverage data is outdated, so just let it be null.
      */

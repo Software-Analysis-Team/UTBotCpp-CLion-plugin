@@ -21,7 +21,6 @@ class UTBotTargetsToolWindow(
         val panel = JBScrollPane()
         uiList.cellRenderer = Renderer()
         uiList.selectedIndex = 0
-        println(uiList.model)
         uiList.addListSelectionListener {
             controller.selectionChanged(uiList.selectedIndex)
             uiList.updateUI()

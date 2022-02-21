@@ -49,7 +49,7 @@ class UTBotCoverageEngine : CoverageEngine() {
      * Not used in our coverage processing but needs to be implemented.
      */
     override fun createCoverageEnabledConfiguration(conf: RunConfigurationBase<*>): CoverageEnabledConfiguration {
-        return UTBotCoverageEnabledConfiguration(conf)
+        return object : CoverageEnabledConfiguration(conf) {}
     }
 
     /**

@@ -1,6 +1,6 @@
 package com.github.vol0n.utbotcppclion.actions.utils
 
-import com.github.vol0n.utbotcppclion.services.Client
+import com.github.vol0n.utbotcppclion.client.Client
 import com.github.vol0n.utbotcppclion.services.UTBotSettings
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
