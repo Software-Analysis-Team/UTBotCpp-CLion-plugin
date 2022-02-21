@@ -33,16 +33,15 @@ plugins {
     // Java support
     id("java")
     // Kotlin support
-    id("org.jetbrains.kotlin.jvm") version "1.5.30"
+    id("org.jetbrains.kotlin.jvm") version "1.6.10"
     // Gradle IntelliJ Plugin
-    id("org.jetbrains.intellij") version "1.1.6"
+    id("org.jetbrains.intellij") version "1.3.1"
     // Gradle Changelog Plugin
     id("org.jetbrains.changelog") version "1.3.0"
     // Gradle Qodana Plugin
     id("org.jetbrains.qodana") version "0.1.12"
     // serialization
-    kotlin("plugin.serialization") version "1.5.30"
-
+    kotlin("plugin.serialization") version "1.6.10"
     id("com.google.protobuf") version "0.8.15"
     idea
     application
@@ -69,9 +68,10 @@ dependencies {
     implementation("org.slf4j:slf4j-api:1.7.30")
     implementation("ch.qos.logback:logback-core:1.2.3")
     implementation("ch.qos.logback:logback-classic:1.2.3")
+    implementation("io.github.microutils:kotlin-logging-jvm:2.1.20")
+    implementation("org.jetbrains.kotlin:kotlin-reflect:1.6.0")
 
-    // yaml
-    implementation("com.charleskorn.kaml:kaml:0.36.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.3.2")
 }
 
 protobuf {
@@ -119,7 +119,6 @@ intellij {
     // use CLion version 2021.2.2
     version.set(platformVersion)
     type.set(platformType)
-    downloadSources.set(false)
     updateSinceUntilBuild.set(true)
 
     // to use auto-reload for ide instance

@@ -2,7 +2,6 @@ package com.github.vol0n.utbotcppclion.actions
 
 import com.github.vol0n.utbotcppclion.actions.utils.client
 import com.github.vol0n.utbotcppclion.actions.utils.getContainingFunction
-import com.github.vol0n.utbotcppclion.ui.GeneratorSettingsDialog
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.ui.ComponentValidator
 import com.intellij.openapi.ui.ValidationInfo
@@ -89,9 +88,7 @@ class GenerateForPredicateAction : GenerateTestsBaseAction() {
 
         fun sendPredicateToServer(validationType: ValidationType, valueToCompare: String, comparisonOperator: String) {
             val predicateRequest = getPredicateRequestMessage(validationType, valueToCompare, comparisonOperator, e)
-            if (GeneratorSettingsDialog().showAndGet()) {
-                e.client.generateForPredicate(predicateRequest)
-            }
+            e.client.generateForPredicate(predicateRequest)
         }
 
         fun chooseComparisonOperator(type: ValidationType, proceedWithComparisonOperator: (comparisonOperator: String) -> Unit) {

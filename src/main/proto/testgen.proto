@@ -21,6 +21,24 @@ service TestsGenService {
     rpc RegisterClient(RegisterClientRequest) returns(DummyResponse) {}
     rpc OpenGTestChannel(LogChannelRequest) returns(stream LogEntry) {}
     rpc CloseGTestChannel(DummyRequest) returns(DummyResponse) {}
+    rpc GetProjectTargets(ProjectTargetsRequest) returns(ProjectTargetsResponse) {}
+    rpc OpenLogChannel(LogChannelRequest) returns(stream LogEntry) {}
+    rpc CloseLogChannel(DummyRequest) returns(DummyResponse) {}
+}
+
+message ProjectTarget {
+    string name = 1;
+    string path = 2;
+    string description = 3;
+}
+
+message ProjectTargetsRequest {
+    ProjectContext projectContext = 1;
+}
+
+message ProjectTargetsResponse {
+    repeated ProjectTarget targets = 1;
+    ProjectTarget priorityTarget = 2;
 }
 
 message LogChannelRequest {

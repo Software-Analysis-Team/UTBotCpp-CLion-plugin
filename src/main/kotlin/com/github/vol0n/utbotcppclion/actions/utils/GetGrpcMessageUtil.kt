@@ -1,8 +1,7 @@
 package com.github.vol0n.utbotcppclion.actions
 
 import com.github.vol0n.utbotcppclion.services.GeneratorSettings
-import com.github.vol0n.utbotcppclion.services.ProjectSettings
-import com.github.vol0n.utbotcppclion.utils.relativize
+import com.github.vol0n.utbotcppclion.services.UTBotSettings
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.components.service
@@ -25,43 +24,44 @@ fun getSettingsContextMessage(params: GeneratorSettings): Testgen.SettingsContex
         .build()
 }
 
-fun getProjectContextMessage(params: ProjectSettings, project: Project): Testgen.ProjectContext {
+fun getProjectContextMessage(params: UTBotSettings, project: Project): Testgen.ProjectContext {
     LOG.info("In getProjectContextMessage")
     return Testgen.ProjectContext.newBuilder()
         .setProjectName(project.name)
-        .setProjectPath(project.basePath)
+        .setProjectPath(params.getProjectPath())
         .setBuildDirRelativePath(params.getRelativeBuildDirPath())
         .setResultsDirRelativePath("") // this path is used only for console interface, server don't use it.
-        .setTestDirPath(params.getRelativeTestDirPath())
+        .setTestDirPath(params.getAbsoluteTestDirPath())
         .build()
 }
 
-fun getProjectRequestMessage(project: Project, params: ProjectSettings): Testgen.ProjectRequest {
+fun getProjectRequestMessage(project: Project, params: UTBotSettings): Testgen.ProjectRequest {
     LOG.info("In getProjectRequestMessage")
     return Testgen.ProjectRequest.newBuilder()
         .setSettingsContext(
             getSettingsContextMessage(
-                service<GeneratorSettings>()
+                project.service<GeneratorSettings>()
             )
         )
         .setProjectContext(getProjectContextMessage(params, project))
-        .setTargetPath(params.getRelativeTargetPath())
-        .addAllSourcePaths(params.getRelativeSourcesPaths())
+        .setTargetPath(params.getAbsoluteTargetPath())
+        .addAllSourcePaths(params.getAbsoluteSourcePaths())
         .setSynchronizeCode(params.synchronizeCode)
         .build()
 }
 
-fun getSourceInfoMessage(line: Int, filePath: String): Util.SourceInfo {
+fun getSourceInfoMessage(line: Int, filePath: String, project: Project): Util.SourceInfo {
+    val utbotSettings = project.service<UTBotSettings>()
     return Util.SourceInfo.newBuilder()
         .setLine(line)
-        .setFilePath(filePath)
+        .setFilePath(utbotSettings.convertToRemotePathIfNeeded(filePath))
         .build()
 }
 
-fun getLineRequestMessage(project: Project, params: ProjectSettings, line: Int, filePath: String): Testgen.LineRequest {
+fun getLineRequestMessage(project: Project, params: UTBotSettings, line: Int, filePath: String): Testgen.LineRequest {
     LOG.info("In getLineRequestMessage: which takes many parameters")
     val projectRequest = getProjectRequestMessage(project, params)
-    val sourceInfo = getSourceInfoMessage(line, filePath)
+    val sourceInfo = getSourceInfoMessage(line, filePath, project)
     LOG.info("Before returning from getLineRequestMessage: which takes many parameters")
     return Testgen.LineRequest.newBuilder()
         .setProjectRequest(projectRequest)
@@ -73,12 +73,10 @@ fun getLineRequestMessage(e: AnActionEvent): Testgen.LineRequest {
     LOG.info("In getLineRequestMessage")
     val project = e.getRequiredData(CommonDataKeys.PROJECT)
     val filePath = e.getRequiredData(CommonDataKeys.VIRTUAL_FILE).path
-    val projectPath: String = project.basePath!!
-    val relativeFilePath = relativize(projectPath, filePath)
     val editor = e.getRequiredData(CommonDataKeys.EDITOR)
-    val projectSettings = project.service<ProjectSettings>()
-    val lineNumber = editor.caretModel.logicalPosition.line
-    val result = getLineRequestMessage(project, projectSettings, lineNumber, relativeFilePath)
+    val utbotSettings = project.service<UTBotSettings>()
+    val lineNumber = editor.caretModel.logicalPosition.line + 1
+    val result = getLineRequestMessage(project, utbotSettings, lineNumber, filePath)
     LOG.info("Before returning from getLIneRequestMessage")
     return result
 }
@@ -100,11 +98,11 @@ fun getFileRequestMessage(e: AnActionEvent): Testgen.FileRequest {
     LOG.info("in getFileRequestMessage")
     // this function is supposed to be called in actions' performAction(), so update() validated these properties
     val project: Project = e.project!!
-    val projectPath: String = project.basePath!!
+    val utbotSettings = project.service<UTBotSettings>()
     val filePath = e.getRequiredData(CommonDataKeys.VIRTUAL_FILE).path
     return Testgen.FileRequest.newBuilder()
-        .setProjectRequest(getProjectRequestMessage(project, project.service()))
-        .setFilePath(relativize(projectPath, filePath))
+        .setProjectRequest(getProjectRequestMessage(project, utbotSettings))
+        .setFilePath(utbotSettings.convertToRemotePathIfNeeded(filePath))
         .build()
 }
 
@@ -126,18 +124,22 @@ fun getClassRequestMessage(e: AnActionEvent): Testgen.ClassRequest {
 
 fun getFolderRequestMessage(e: AnActionEvent): Testgen.FolderRequest {
     LOG.info("in getFolderRequestMessage")
+    val utbotSettings = e.project!!.service<UTBotSettings>()
+    val localPath = e.getRequiredData(CommonDataKeys.VIRTUAL_FILE).path
     return Testgen.FolderRequest.newBuilder()
         .setProjectRequest(getProjectRequestMessage(e))
-        .setFolderPath(relativize(e.project!!.basePath!!, e.getRequiredData(CommonDataKeys.VIRTUAL_FILE).path))
+        .setFolderPath(utbotSettings.convertToRemotePathIfNeeded(localPath))
         .build()
 }
 
 fun getSnippetRequestMessage(e: AnActionEvent): Testgen.SnippetRequest {
     LOG.info("in getSnippetRequestMessage")
+    val utbotSettings = e.project!!.service<UTBotSettings>()
+    val localPath = e.getRequiredData(CommonDataKeys.VIRTUAL_FILE).path
     return Testgen.SnippetRequest.newBuilder()
-        .setProjectContext(getProjectContextMessage(e.project!!.service(), e.project!!))
-        .setSettingsContext(getSettingsContextMessage(service()))
-        .setFilePath(relativize(e.project?.basePath!!, e.getRequiredData(CommonDataKeys.VIRTUAL_FILE).path))
+        .setProjectContext(getProjectContextMessage(utbotSettings, e.project!!))
+        .setSettingsContext(getSettingsContextMessage(e.project!!.service()))
+        .setFilePath(utbotSettings.convertToRemotePathIfNeeded(localPath))
         .build()
 }
 
@@ -173,4 +175,52 @@ fun getCmakeOptions(project: Project): String? {
     return CMakeWorkspace.getInstance(project).profileInfos.find {
         it.profile.enabled
     }?.profile?.generationOptions
+}
+
+fun getDummyRequest() = Testgen.DummyRequest.newBuilder().build()
+
+fun getTestFilter(e: AnActionEvent): Testgen.TestFilter {
+    val filePath = e.getRequiredData(CommonDataKeys.VIRTUAL_FILE).path
+    val testName = ""
+    val testSuite = ""
+    return getTestFilter(filePath, testName, testSuite)
+}
+
+fun getTestFilter(filePath: String, testName: String = "", testSuite: String = ""): Testgen.TestFilter =
+    Testgen.TestFilter.newBuilder()
+        .setTestFilePath(filePath)
+        .setTestName(testName)
+        .setTestSuite(testSuite)
+        .build()
+
+fun getCoverageAndResultsRequest(
+    utbotSettings: UTBotSettings,
+    filePath: String,
+    testSuite: String = "",
+    testName: String = "",
+    includeCoverage: Boolean = true
+): Testgen.CoverageAndResultsRequest {
+    val correctFilePath = utbotSettings.convertToRemotePathIfNeeded(filePath)
+    return Testgen.CoverageAndResultsRequest.newBuilder()
+        .setCoverage(includeCoverage)
+        .setProjectContext(getProjectContextMessage(utbotSettings, utbotSettings.project!!))
+        .setSettingsContext(getSettingsContextMessage(utbotSettings.project.service()))
+        .setTestFilter(getTestFilter(correctFilePath, testName, testSuite))
+        .build()
+}
+
+fun getCoverageAndResultsRequest(
+    e: AnActionEvent,
+    suiteName: String = "",
+    testName: String = "",
+    includeCoverage: Boolean = true
+): Testgen.CoverageAndResultsRequest {
+    val utbotSettings = e.project!!.service<UTBotSettings>()
+    return getCoverageAndResultsRequest(
+        utbotSettings,
+        e.getRequiredData(CommonDataKeys.VIRTUAL_FILE).path,
+        suiteName,
+        testName,
+        includeCoverage
+    )
 }

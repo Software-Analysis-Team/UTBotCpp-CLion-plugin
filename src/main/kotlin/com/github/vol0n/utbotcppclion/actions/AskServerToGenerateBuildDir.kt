@@ -13,6 +13,5 @@ class AskServerToGenerateBuildDir: NotificationAction(UTBot.message("projectConf
 
     override fun actionPerformed(e: AnActionEvent) {
         e.client.createBuildDir()
-        super.actionPerformed(e)
     }
 }

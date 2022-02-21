@@ -1,6 +1,6 @@
 package com.github.vol0n.utbotcppclion.actions
 
-import com.github.vol0n.utbotcppclion.services.Client
+import com.github.vol0n.utbotcppclion.client.Client
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.components.service
